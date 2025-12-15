@@ -24,6 +24,7 @@ app.post('/auth/login', async (req, res) => {
     if (!ok) return res.status(401).json({ error: 'invalid_credentials' })
     return res.json({ id: u.id, name: u.name, email: u.email, role: u.role })
   } catch (e) {
+    console.error('/auth/login error', e)
     return res.status(500).json({ error: 'server_error' })
   }
 })
@@ -37,6 +38,7 @@ if (process.env.NODE_ENV !== 'production') {
       const r = await pool.query('INSERT INTO users(name,email,password_hash,role) VALUES($1,$2,$3,$4) ON CONFLICT(email) DO NOTHING RETURNING id', [name, email, hash, role ?? 'user'])
       return res.json({ inserted: r.rowCount })
     } catch (e) {
+      console.error('/dev/seed-user error', e)
       return res.status(500).json({ error: 'server_error' })
     }
   })
@@ -56,7 +58,8 @@ if (process.env.NODE_ENV !== 'production') {
         [name, email, hash, role ?? 'user']
       )
       return res.json({ upserted: r.rowCount })
-    } catch {
+    } catch (e) {
+      console.error('/dev/upsert-user error', e)
       return res.status(500).json({ error: 'server_error' })
     }
   })

@@ -29,6 +29,14 @@ type Project = {
   status: string
 }
 
+type ProjectItem = {
+  project_id: number
+  requirements: string
+  service_category: string
+  unit_cost: number
+  requirement_type: string
+}
+
 export default function Dashboard({ user, onLogout }: { user: User; onLogout?: () => void }) {
   const [tab, setTab] = useState<'home' | 'employees' | 'projects' | 'accounting'>('home')
   const [navOpen, setNavOpen] = useState(true)
@@ -65,6 +73,14 @@ export default function Dashboard({ user, onLogout }: { user: User; onLogout?: (
   const [deletingProject, setDeletingProject] = useState<Project | null>(null)
   const [projectEditModalOpen, setProjectEditModalOpen] = useState(false)
   const [projectDeleteModalOpen, setProjectDeleteModalOpen] = useState(false)
+  const [projectItemsModalOpen, setProjectItemsModalOpen] = useState(false)
+  const [currentProjectForItems, setCurrentProjectForItems] = useState<Project | null>(null)
+  const [projectItems, setProjectItems] = useState<ProjectItem[]>([])
+  const [itemRequirements, setItemRequirements] = useState('')
+  const [itemServiceCategory, setItemServiceCategory] = useState('')
+  const [itemUnitCost, setItemUnitCost] = useState('')
+  const [itemRequirementType, setItemRequirementType] = useState('')
+  const [editingItem, setEditingItem] = useState<ProjectItem | null>(null)
 
   const fetchEmployees = useCallback(async () => {
     setLoading(true)
@@ -111,6 +127,117 @@ export default function Dashboard({ user, onLogout }: { user: User; onLogout?: (
       fetchProjects()
     }
   }, [tab, fetchProjects])
+
+  const fetchProjectItems = async (projectId: number) => {
+    try {
+      const r = await fetch(`http://localhost:3000/projects/${projectId}/items`)
+      if (!r.ok) {
+        console.error('Failed to fetch project items')
+        return
+      }
+      const data = await r.json()
+      setProjectItems(data.items || [])
+    } catch (err) {
+      console.error('Error fetching items', err)
+    }
+  }
+
+  const openProjectItemsModal = async (project: Project) => {
+    setCurrentProjectForItems(project)
+    setProjectItemsModalOpen(true)
+    setItemRequirements('')
+    setItemServiceCategory('')
+    setItemUnitCost('')
+    setItemRequirementType('')
+    setEditingItem(null)
+    await fetchProjectItems(project.project_id)
+  }
+
+  const clearItemForm = () => {
+    setItemRequirements('')
+    setItemServiceCategory('')
+    setItemUnitCost('')
+    setItemRequirementType('')
+    setEditingItem(null)
+  }
+
+  const saveProjectItem = async () => {
+    if (!currentProjectForItems) return
+    if (!itemRequirements || !itemServiceCategory || itemUnitCost === '' || !itemRequirementType) {
+      alert('Missing required fields for item')
+      return
+    }
+    const body = {
+      requirements: itemRequirements,
+      service_category: itemServiceCategory,
+      unit_cost: Number(itemUnitCost),
+      requirement_type: itemRequirementType,
+    }
+    try {
+      if (editingItem) {
+        const r = await fetch(`http://localhost:3000/projects/${currentProjectForItems.project_id}/items/${encodeURIComponent(editingItem.requirements)}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            service_category: itemServiceCategory,
+            unit_cost: Number(itemUnitCost),
+            requirement_type: itemRequirementType,
+          }),
+        })
+        if (!r.ok) {
+          const d = await r.json().catch(() => ({}))
+          alert(d.error || 'Failed to update item')
+          return
+        }
+        alert('Item updated')
+      } else {
+        const r = await fetch(`http://localhost:3000/projects/${currentProjectForItems.project_id}/items`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        })
+        if (!r.ok) {
+          const d = await r.json().catch(() => ({}))
+          alert(d.error || 'Failed to create item')
+          return
+        }
+        alert('Item created')
+      }
+      clearItemForm()
+      await fetchProjectItems(currentProjectForItems.project_id)
+      await fetchProjects()
+    } catch (err) {
+      console.error(err)
+      alert('Server error')
+    }
+  }
+
+  const startEditItem = (it: ProjectItem) => {
+    setEditingItem(it)
+    setItemRequirements(it.requirements)
+    setItemServiceCategory(it.service_category)
+    setItemUnitCost(String(it.unit_cost))
+    setItemRequirementType(it.requirement_type)
+  }
+
+  const removeItem = async (it: ProjectItem) => {
+    if (!currentProjectForItems) return
+    if (!confirm('Delete this item?')) return
+    try {
+      const r = await fetch(`http://localhost:3000/projects/${currentProjectForItems.project_id}/items/${encodeURIComponent(it.requirements)}`, { method: 'DELETE' })
+      if (!r.ok) {
+        const d = await r.json().catch(() => ({}))
+        alert(d.error || 'Failed to delete item')
+        return
+      }
+      alert('Item deleted')
+      await fetchProjectItems(currentProjectForItems.project_id)
+      await fetchProjects()
+    } catch (err) {
+      console.error(err)
+      alert('Server error')
+    }
+  }
   const resetForm = () => {
     setEmployeeNumber('')
     setFirstName('')
@@ -492,6 +619,7 @@ export default function Dashboard({ user, onLogout }: { user: User; onLogout?: (
                           <td style={{ padding: '12px 16px', display: 'flex', gap: 8 }}>
                             <button onClick={() => openEditProjectModal(proj)} style={{ padding: '6px 12px', borderRadius: 6, border: '1px solid #4CAF50', background: '#4CAF50', color: '#fff', cursor: 'pointer', fontSize: '12px' }}>Edit</button>
                             <button onClick={() => { setDeletingProject(proj); setProjectDeleteModalOpen(true) }} style={{ padding: '6px 12px', borderRadius: 6, border: '1px solid #f44336', background: '#f44336', color: '#fff', cursor: 'pointer', fontSize: '12px' }}>Delete</button>
+                            <button onClick={() => openProjectItemsModal(proj)} style={{ padding: '6px 12px', borderRadius: 6, border: '1px solid #2196F3', background: '#2196F3', color: '#fff', cursor: 'pointer', fontSize: '12px' }}>Items</button>
                           </td>
                         </tr>
                       ))}
@@ -739,6 +867,72 @@ export default function Dashboard({ user, onLogout }: { user: User; onLogout?: (
             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 16 }}>
               <button onClick={() => { setProjectDeleteModalOpen(false); setDeletingProject(null) }} style={{ padding: '10px 12px', borderRadius: 8, border: '1px solid var(--primary)', background: '#b1b1b1', color: '#111' }}>Cancel</button>
               <button disabled={saving} onClick={deleteProjectConfirm} style={{ padding: '10px 12px', borderRadius: 8, border: '1px solid var(--primary)', background: '#f44336', color: '#fff', cursor: saving ? 'not-allowed' : 'pointer' }}>{saving ? 'Deleting...' : 'Delete'}</button>
+            </div>
+          </div>
+        </div>
+      )}
+      {projectItemsModalOpen && currentProjectForItems && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'grid', placeItems: 'center', zIndex: 1000, overflowY: 'auto', padding: '20px' }} onClick={() => { setProjectItemsModalOpen(false); setCurrentProjectForItems(null); setProjectItems([]) }}>
+          <div style={{ width: 'min(800px, 96vw)', maxHeight: '90vh', padding: 24, borderRadius: 16, background: '#063062', color: '#111', border: '1px solid var(--primary)', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
+            <h2 style={{ color: "#e41212ff", marginTop: 0 }}>Project Items — {currentProjectForItems.project_name}</h2>
+            <div style={{ display: 'grid', gap: 12 }}>
+              <div style={{ display: 'flex', gap: 12 }}>
+                <label style={{ color: '#fff', display: 'grid', gap: 6, flex: 1 }}>
+                  <span>Requirements *</span>
+                  <input value={itemRequirements} onChange={e => setItemRequirements(e.target.value)} style={{ padding: '10px 12px', borderRadius: 8, border: '1px solid var(--primary)' }} />
+                </label>
+                <label style={{ color: '#fff', display: 'grid', gap: 6, width: 200 }}>
+                  <span>Service Category *</span>
+                  <input value={itemServiceCategory} onChange={e => setItemServiceCategory(e.target.value)} style={{ padding: '10px 12px', borderRadius: 8, border: '1px solid var(--primary)' }} />
+                </label>
+                <label style={{ color: '#fff', display: 'grid', gap: 6, width: 160 }}>
+                  <span>Unit Cost *</span>
+                  <input type="number" value={itemUnitCost} onChange={e => setItemUnitCost(e.target.value)} style={{ padding: '10px 12px', borderRadius: 8, border: '1px solid var(--primary)' }} />
+                </label>
+                <label style={{ color: '#fff', display: 'grid', gap: 6, width: 200 }}>
+                  <span>Requirement Type *</span>
+                  <input value={itemRequirementType} onChange={e => setItemRequirementType(e.target.value)} style={{ padding: '10px 12px', borderRadius: 8, border: '1px solid var(--primary)' }} />
+                </label>
+              </div>
+              <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                <button onClick={() => { setProjectItemsModalOpen(false); setCurrentProjectForItems(null); setProjectItems([]) }} style={{ padding: '10px 12px', borderRadius: 8, border: '1px solid var(--primary)', background: '#b1b1b1', color: '#111' }}>Close</button>
+                <button onClick={() => saveProjectItem()} style={{ padding: '10px 12px', borderRadius: 8, border: '1px solid var(--primary)', background: 'var(--accent)', color: '#fff' }}>Save Item</button>
+              </div>
+
+              <div style={{ marginTop: 12, background: '#fff', borderRadius: 8, padding: 12 }}>
+                <h3 style={{ margin: 0 }}>Existing Items</h3>
+                {projectItems.length === 0 ? (
+                  <div style={{ padding: 12 }}>No items yet.</div>
+                ) : (
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
+                    <thead>
+                      <tr>
+                        <th style={{ textAlign: 'left', padding: 8 }}>Requirements</th>
+                        <th style={{ textAlign: 'left', padding: 8 }}>Service Category</th>
+                        <th style={{ textAlign: 'left', padding: 8 }}>Unit Cost</th>
+                        <th style={{ textAlign: 'left', padding: 8 }}>Type</th>
+                        <th style={{ textAlign: 'left', padding: 8 }}>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {projectItems.map(it => (
+                        <tr key={it.requirements}>
+                          <td style={{ padding: 8 }}>{it.requirements}</td>
+                          <td style={{ padding: 8 }}>{it.service_category}</td>
+                          <td style={{ padding: 8 }}>{it.unit_cost}</td>
+                          <td style={{ padding: 8 }}>{it.requirement_type}</td>
+                          <td style={{ padding: 8 }}>
+                            <div style={{ display: 'flex', gap: 8 }}>
+                              <button onClick={() => startEditItem(it)} style={{ padding: '6px 10px', borderRadius: 6, border: '1px solid #4CAF50', background: '#4CAF50', color: '#fff' }}>Edit</button>
+                              <button onClick={() => removeItem(it)} style={{ padding: '6px 10px', borderRadius: 6, border: '1px solid #f44336', background: '#f44336', color: '#fff' }}>Delete</button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
             </div>
           </div>
         </div>
