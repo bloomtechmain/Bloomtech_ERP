@@ -120,7 +120,7 @@ export default function Dashboard({ user, onLogout }: { user: User; onLogout?: (
   const [projectDeleteModalOpen, setProjectDeleteModalOpen] = useState(false)
   const [projectItemsModalOpen, setProjectItemsModalOpen] = useState(false)
   const [openAccountModalOpen, setOpenAccountModalOpen] = useState(false)
-  const [accountingSubTab, setAccountingSubTab] = useState<'accounts' | 'payable'>('accounts')
+  const [accountingSubTab, setAccountingSubTab] = useState<'accounts' | 'payable' | 'petty_cash'>('accounts')
   const [employeeSubTab, setEmployeeSubTab] = useState<'employees' | 'vendors'>('employees')
   const [bankName, setBankName] = useState('')
   const [branch, setBranch] = useState('')
@@ -209,7 +209,6 @@ export default function Dashboard({ user, onLogout }: { user: User; onLogout?: (
     created_at: string
   }
   const [cards, setCards] = useState<Card[]>([])
-  const [cardsLoading, setCardsLoading] = useState(false)
   const [selectedAccountForCards, setSelectedAccountForCards] = useState<Account | null>(null)
 
   const [accounts, setAccounts] = useState<Account[]>([])
@@ -288,7 +287,6 @@ export default function Dashboard({ user, onLogout }: { user: User; onLogout?: (
   }, [])
 
   const fetchCards = useCallback(async () => {
-    setCardsLoading(true)
     try {
       const r = await fetch('http://localhost:3000/accounts/debit-cards')
       if (!r.ok) {
@@ -299,8 +297,6 @@ export default function Dashboard({ user, onLogout }: { user: User; onLogout?: (
       setCards(data.cards || [])
     } catch (err) {
       console.error('Error fetching cards:', err)
-    } finally {
-      setCardsLoading(false)
     }
   }, [])
 
