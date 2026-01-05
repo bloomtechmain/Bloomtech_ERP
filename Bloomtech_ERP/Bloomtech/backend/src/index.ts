@@ -4,6 +4,10 @@ import { pool } from './db'
 import bcrypt from 'bcryptjs'
 import employeeRoutes from './routes/employees'
 import projectRoutes from './routes/projects'
+import accountsRoutes from './routes/accounts'
+import vendorRoutes from './routes/vendors'
+import payableRoutes from './routes/payables'
+import pettyCashRoutes from './routes/pettyCash'
 
 const app = express()
 app.use(cors())
@@ -11,6 +15,10 @@ app.use(express.json())
 
 app.use('/employees', employeeRoutes)
 app.use('/projects', projectRoutes)
+app.use('/accounts', accountsRoutes)
+app.use('/vendors', vendorRoutes)
+app.use('/payables', payableRoutes)
+app.use('/petty-cash', pettyCashRoutes)
 
 
 app.post('/auth/login', async (req, res) => {
