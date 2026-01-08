@@ -1,3 +1,5 @@
+cd Bloomtech_ERP/Bloomtech/client
+cat > Caddyfile << 'EOF'
 :{$PORT}
 
 root * /app/dist
@@ -9,3 +11,4 @@ log {
     output stdout
     format console
 }
+EOF
