@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # BloomTech ERP — How to Run
 
 ## Prerequisites
@@ -51,7 +50,3 @@
 - Port conflicts: ensure only one backend on `3000` and one frontend on `5173`.
 - Database connection errors: verify PostgreSQL is running and `.env` values.
 - CORS: API has `cors()` enabled; frontend calls `http://localhost:3000`.
-=======
-# Bloomtech_ERP
-# Bloomtech_ERP
->>>>>>> 0b666bf2f3f890bf407b36bc12617e0e4867e359
