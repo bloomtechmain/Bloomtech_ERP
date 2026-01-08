@@ -116,7 +116,7 @@ if (process.env.NODE_ENV !== 'production') {
 }
 
 const port = process.env.PORT ? Number(process.env.PORT) : 3000
-app.listen(port, () => {
+app.listen(port, '0.0.0.0', () => {
   console.log(`API on http://localhost:${port}`)
 })
 
