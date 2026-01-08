@@ -11,7 +11,18 @@ import pettyCashRoutes from './routes/pettyCash'
 
 const app = express()
 app.use(cors())
-app.use(express.json())
+const corsOptions = {
+  origin: process.env.NODE_ENV === 'production' 
+    ? [
+        'https://your-frontend-domain.up.railway.app', // Replace with actual frontend URL
+        'http://localhost:5173', // For local development
+        'http://localhost:3000'
+      ]
+    : '*',
+  credentials: true
+}
+
+app.use(cors(corsOptions))app.use(express.json())
 
 app.use('/employees', employeeRoutes)
 app.use('/projects', projectRoutes)
@@ -86,3 +97,4 @@ pool.connect()
     console.error('DATABASE_URL:', process.env.DATABASE_URL ? 'is set' : 'is NOT set');
     process.exit(1);
   });
+
