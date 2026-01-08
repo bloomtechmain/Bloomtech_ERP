@@ -74,16 +74,15 @@ if (process.env.NODE_ENV !== 'production') {
 }
 
 const port = process.env.PORT ? Number(process.env.PORT) : 3000
-app.listen(port, () 
-  pool.connect()
+app.listen(port, () => {
+  console.log(`API on http://localhost:${port}`)
+})
+
+// Test database connection
+pool.connect()
   .then(() => console.log('✅ Database connected successfully'))
   .catch(err => {
     console.error('❌ Database connection error:', err);
     console.error('DATABASE_URL:', process.env.DATABASE_URL ? 'is set' : 'is NOT set');
     process.exit(1);
   });
-  
-  => {
-  console.log(`API on http://localhost:${port}`)
-})
-
