@@ -22,7 +22,8 @@ const corsOptions = {
   credentials: true
 }
 
-app.use(cors(corsOptions))app.use(express.json())
+app.use(cors(corsOptions))
+app.use(express.json())
 
 app.use('/employees', employeeRoutes)
 app.use('/projects', projectRoutes)
@@ -97,6 +98,3 @@ pool.connect()
     console.error('DATABASE_URL:', process.env.DATABASE_URL ? 'is set' : 'is NOT set');
     process.exit(1);
   });
-
-
-
