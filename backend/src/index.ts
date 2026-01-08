@@ -124,16 +124,32 @@ if (process.env.NODE_ENV !== 'production') {
   })
 }
 
-const port = process.env.PORT ? Number(process.env.PORT) : 3000
-app.listen(port, '0.0.0.0', () => {
-  console.log(`API on http://localhost:${port}`)
-})
+// Async startup function to ensure proper initialization order
+async function startServer() {
+  const port = process.env.PORT ? Number(process.env.PORT) : 3000
+  
+  try {
+    // First, test database connection
+    console.log('🔄 Testing database connection...')
+    await pool.connect()
+    console.log('✅ Database connected successfully')
+    
+    // Then start the HTTP server
+    console.log(`🔄 Starting HTTP server on port ${port}...`)
+    app.listen(port, '0.0.0.0', () => {
+      console.log(`✅ Server is ready and accepting connections`)
+      console.log(`🌐 API available at http://localhost:${port}`)
+      console.log(`🎯 Health check endpoint: http://localhost:${port}/`)
+    })
+  } catch (err) {
+    console.error('❌ Startup error:', err)
+    console.error('DATABASE_URL:', process.env.DATABASE_URL ? 'is set' : 'is NOT set')
+    process.exit(1)
+  }
+}
 
-// Test database connection
-pool.connect()
-  .then(() => console.log('✅ Database connected successfully'))
-  .catch(err => {
-    console.error('❌ Database connection error:', err);
-    console.error('DATABASE_URL:', process.env.DATABASE_URL ? 'is set' : 'is NOT set');
-    process.exit(1);
-  });
+// Start the server
+startServer().catch(err => {
+  console.error('❌ Fatal error during startup:', err)
+  process.exit(1)
+})
