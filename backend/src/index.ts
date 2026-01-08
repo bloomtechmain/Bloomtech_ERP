@@ -46,6 +46,15 @@ console.log('🔐 CORS Configuration:', {
 app.use(cors(corsOptions))
 app.use(express.json())
 
+// Root endpoint for Railway health checks
+app.get('/', (req, res) => {
+  res.status(200).json({ 
+    message: 'Bloomtech ERP API',
+    status: 'running',
+    timestamp: new Date().toISOString()
+  })
+})
+
 // Health check endpoint
 app.get('/health', (req, res) => {
   res.status(200).json({ 
