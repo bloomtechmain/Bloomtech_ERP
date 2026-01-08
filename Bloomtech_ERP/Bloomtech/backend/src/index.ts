@@ -14,7 +14,7 @@ app.use(cors())
 const corsOptions = {
   origin: process.env.NODE_ENV === 'production' 
     ? [
-        'invigorating-eagerness-production.up.railway.app', // Replace with actual frontend URL
+        'https://invigorating-eagerness-production.up.railway.app', // Replace with actual frontend URL
         'http://localhost:5173', // For local development
         'http://localhost:3000'
       ]
@@ -97,5 +97,6 @@ pool.connect()
     console.error('DATABASE_URL:', process.env.DATABASE_URL ? 'is set' : 'is NOT set');
     process.exit(1);
   });
+
 
 
