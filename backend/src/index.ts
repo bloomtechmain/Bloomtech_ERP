@@ -21,16 +21,27 @@ if (missingEnvVars.length > 0) {
 const app = express()
 
 // Configure CORS
+let corsOrigin: string | string[]
+if (process.env.NODE_ENV === 'production') {
+  corsOrigin = [
+    process.env.FRONTEND_URL || '',
+    'http://localhost:5173',
+    'http://localhost:3000'
+  ].filter((url) => url !== '')
+} else {
+  corsOrigin = '*'
+}
+
 const corsOptions = {
-  origin: process.env.NODE_ENV === 'production'
-    ? [
-        process.env.FRONTEND_URL || '',
-        'http://localhost:5173',
-        'http://localhost:3000'
-      ].filter(Boolean)
-    : '*',
+  origin: corsOrigin,
   credentials: true
 }
+
+console.log('🔐 CORS Configuration:', {
+  env: process.env.NODE_ENV,
+  origin: corsOrigin,
+  frontend_url: process.env.FRONTEND_URL || 'NOT_SET'
+})
 
 app.use(cors(corsOptions))
 app.use(express.json())
