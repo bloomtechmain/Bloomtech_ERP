@@ -21,7 +21,7 @@ if (missingEnvVars.length > 0) {
 const app = express()
 
 // Configure CORS
-let corsOrigin: string | string[]
+let corsOrigin: string | string[];
 if (process.env.NODE_ENV === 'production') {
   corsOrigin = [
     process.env.FRONTEND_URL || '',
