@@ -227,7 +227,7 @@ export default function Dashboard({ user, onLogout }: { user: User; onLogout?: (
   const fetchEmployees = useCallback(async () => {
     setLoading(true)
     try {
-      const r = await fetch(`${API_URL}/employees')
+      const r = await fetch(`${API_URL}/employees`)
       if (!r.ok) {
         console.error('Failed to fetch employees')
         return
@@ -250,7 +250,7 @@ export default function Dashboard({ user, onLogout }: { user: User; onLogout?: (
   const fetchProjects = useCallback(async () => {
     setProjectsLoading(true)
     try {
-      const r = await fetch(`${API_URL}/projects')
+      const r = await fetch(`${API_URL}/projects`)
       if (!r.ok) {
         console.error('Failed to fetch projects')
         return
@@ -273,7 +273,7 @@ export default function Dashboard({ user, onLogout }: { user: User; onLogout?: (
   const fetchAccounts = useCallback(async () => {
     setAccountsLoading(true)
     try {
-      const r = await fetch(`${API_URL}/accounts')
+      const r = await fetch(`${API_URL}/accounts`)
       if (!r.ok) {
         console.error('Failed to fetch accounts')
         return
@@ -289,7 +289,7 @@ export default function Dashboard({ user, onLogout }: { user: User; onLogout?: (
 
   const fetchCards = useCallback(async () => {
     try {
-      const r = await fetch(`${API_URL}/accounts/debit-cards')
+      const r = await fetch(`${API_URL}/accounts/debit-cards`)
       if (!r.ok) {
         console.error('Failed to fetch cards')
         return
@@ -303,7 +303,7 @@ export default function Dashboard({ user, onLogout }: { user: User; onLogout?: (
 
   const fetchPettyCashBalance = useCallback(async () => {
     try {
-      const r = await fetch(`${API_URL}/petty-cash/balance')
+      const r = await fetch(`${API_URL}/petty-cash/balance`)
       if (r.ok) {
         const data = await r.json()
         setPettyCashBalance(data.current_balance !== undefined ? Number(data.current_balance) : 0)
@@ -316,7 +316,7 @@ export default function Dashboard({ user, onLogout }: { user: User; onLogout?: (
   const fetchPettyCashTransactions = useCallback(async () => {
     setPettyCashTransactionsLoading(true)
     try {
-      const r = await fetch(`${API_URL}/petty-cash/transactions')
+      const r = await fetch(`${API_URL}/petty-cash/transactions`)
       if (r.ok) {
         const data = await r.json()
         setPettyCashTransactions(data || [])
@@ -359,7 +359,7 @@ export default function Dashboard({ user, onLogout }: { user: User; onLogout?: (
       return
     }
     try {
-      const r = await fetch(`${API_URL}/accounts/debit-cards', {
+      const r = await fetch(`${API_URL}/accounts/debit-cards`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -390,7 +390,7 @@ export default function Dashboard({ user, onLogout }: { user: User; onLogout?: (
   const fetchVendors = useCallback(async () => {
     setVendorsLoading(true)
     try {
-      const r = await fetch(`${API_URL}/vendors')
+      const r = await fetch(`${API_URL}/vendors`)
       if (r.ok) {
         const data = await r.json()
         setVendors(data.vendors)
@@ -412,7 +412,7 @@ export default function Dashboard({ user, onLogout }: { user: User; onLogout?: (
     if (!vendorName) return alert('Vendor Name is required')
     setSaving(true)
     try {
-      const r = await fetch(`${API_URL}/vendors', {
+      const r = await fetch(`${API_URL}/vendors`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -443,7 +443,7 @@ export default function Dashboard({ user, onLogout }: { user: User; onLogout?: (
   const fetchPayables = useCallback(async () => {
     setPayablesLoading(true)
     try {
-      const r = await fetch(`${API_URL}/payables')
+      const r = await fetch(`${API_URL}/payables`)
       if (r.ok) {
         const data = await r.json()
         setPayables(data.payables || [])
@@ -482,7 +482,7 @@ export default function Dashboard({ user, onLogout }: { user: User; onLogout?: (
       // Handle Petty Cash Bill separately
       setSaving(true)
       try {
-        const r = await fetch(`${API_URL}/petty-cash/bill', {
+        const r = await fetch(`${API_URL}/petty-cash/bill`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -520,7 +520,7 @@ export default function Dashboard({ user, onLogout }: { user: User; onLogout?: (
 
     setSaving(true)
     try {
-      const r = await fetch(`${API_URL}/payables', {
+      const r = await fetch(`${API_URL}/payables`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -681,7 +681,7 @@ export default function Dashboard({ user, onLogout }: { user: User; onLogout?: (
     }
     setSaving(true)
     try {
-      const r = await fetch(`${API_URL}/accounts/open-account', {
+      const r = await fetch(`${API_URL}/accounts/open-account`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -759,7 +759,7 @@ export default function Dashboard({ user, onLogout }: { user: User; onLogout?: (
     }
     setSaving(true)
     try {
-      const r = await fetch(`${API_URL}/employees', {
+      const r = await fetch(`${API_URL}/employees`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -861,7 +861,7 @@ export default function Dashboard({ user, onLogout }: { user: User; onLogout?: (
     }
     setSaving(true)
     try {
-      const r = await fetch(`${API_URL}/projects', {
+      const r = await fetch(`${API_URL}/projects`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -996,7 +996,7 @@ export default function Dashboard({ user, onLogout }: { user: User; onLogout?: (
     }
     setSaving(true)
     try {
-      const r = await fetch(`${API_URL}/petty-cash/replenish', {
+      const r = await fetch(`${API_URL}/petty-cash/replenish`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
