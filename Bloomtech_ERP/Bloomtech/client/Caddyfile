@@ -1,5 +1,8 @@
 cd Bloomtech_ERP/Bloomtech/client
-cat > Caddyfile << 'EOF'
+rm Caddyfile
+
+# Create the file with JUST the Caddyfile content (no bash commands)
+cat > Caddyfile << 'ENDOFFILE'
 :{$PORT}
 
 root * /app/dist
@@ -11,4 +14,19 @@ log {
     output stdout
     format console
 }
-EOF
+ENDOFFILE
+```
+
+Or manually create a file called `Caddyfile` with ONLY this content:
+```
+:{$PORT}
+
+root * /app/dist
+try_files {path} /index.html
+file_server
+encode gzip
+
+log {
+    output stdout
+    format console
+}
