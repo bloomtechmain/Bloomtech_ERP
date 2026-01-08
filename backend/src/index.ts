@@ -21,12 +21,12 @@ if (missingEnvVars.length > 0) {
 const app = express()
 
 // Configure CORS
-const allowedOrigins = process.env.NODE_ENV === 'production'
+const allowedOrigins: string | string[] = process.env.NODE_ENV === 'production'
   ? [
       process.env.FRONTEND_URL || '',
       'http://localhost:5173', // For local development testing
       'http://localhost:3000'
-    ].filter(Boolean)
+    ].filter((origin): origin is string => Boolean(origin))
   : '*'
 
 const corsOptions = {
