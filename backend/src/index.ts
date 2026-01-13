@@ -8,6 +8,9 @@ import accountsRoutes from './routes/accounts'
 import vendorRoutes from './routes/vendors'
 import payableRoutes from './routes/payables'
 import pettyCashRoutes from './routes/pettyCash'
+import receivableRoutes from './routes/receivables'
+import assetRoutes from './routes/assets'
+
 
 // Validate required environment variables
 const requiredEnvVars = ['DATABASE_URL']
@@ -70,6 +73,9 @@ app.use('/accounts', accountsRoutes)
 app.use('/vendors', vendorRoutes)
 app.use('/payables', payableRoutes)
 app.use('/petty-cash', pettyCashRoutes)
+app.use('/receivables', receivableRoutes)
+app.use('/assets', assetRoutes)
+
 
 
 app.post('/auth/login', async (req, res) => {
