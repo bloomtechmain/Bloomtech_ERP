@@ -1,7 +1,10 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { API_URL } from '../config/api'
 import CalendarWidget from '../components/CalendarWidget'
-import { LayoutDashboard, Users, ClipboardList, Store, FolderOpen, Banknote, Landmark, Receipt, Coins, Inbox, Plus, CreditCard, Building2, ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react'
+import NotesWidget from '../components/NotesWidget'
+import TodosWidget from '../components/TodosWidget'
+import DataAnalytics from './DataAnalytics'
+import { LayoutDashboard, Users, ClipboardList, Store, FolderOpen, Banknote, Landmark, Receipt, Coins, Inbox, Plus, CreditCard, Building2, ChevronLeft, ChevronRight, ChevronDown, BarChart3 } from 'lucide-react'
 
 type User = { id: number; name: string; email: string; role: string }
 
@@ -110,11 +113,27 @@ type Asset = {
   value: number
   purchase_date: string
   created_at: string
+  depreciation_method?: 'STRAIGHT_LINE' | 'DOUBLE_DECLINING' | null
+  salvage_value?: number | null
+  useful_life?: number | null
+  current_book_value?: number
+  accumulated_depreciation?: number
+}
+
+type DepreciationScheduleItem = {
+  period: string | number
+  year?: number
+  month?: number
+  beginningBookValue: number
+  depreciation: number
+  accumulatedDepreciation: number
+  endingBookValue: number
+  isCurrent?: boolean
 }
 
 export default function Dashboard({ user, onLogout }: { user: User; onLogout?: () => void }) {
   console.log('Dashboard render start', { user })
-  const [tab, setTab] = useState<'home' | 'employees' | 'projects' | 'accounting'>('home')
+  const [tab, setTab] = useState<'home' | 'employees' | 'projects' | 'accounting' | 'analytics' | 'assets'>('home')
   const [navOpen, setNavOpen] = useState(true)
   const [addOpen, setAddOpen] = useState(false)
   const [editOpen, setEditOpen] = useState(false)
@@ -271,6 +290,15 @@ export default function Dashboard({ user, onLogout }: { user: User; onLogout?: (
   const [purchaseDate, setPurchaseDate] = useState('')
   const [assets, setAssets] = useState<Asset[]>([])
   const [assetsLoading, setAssetsLoading] = useState(false)
+  const [isDepreciable, setIsDepreciable] = useState(false)
+  const [depreciationMethod, setDepreciationMethod] = useState<'STRAIGHT_LINE' | 'DOUBLE_DECLINING'>('STRAIGHT_LINE')
+  const [salvageValue, setSalvageValue] = useState('')
+  const [usefulLife, setUsefulLife] = useState('')
+  const [depreciationScheduleModalOpen, setDepreciationScheduleModalOpen] = useState(false)
+  const [selectedAssetForSchedule, setSelectedAssetForSchedule] = useState<Asset | null>(null)
+  const [depreciationSchedule, setDepreciationSchedule] = useState<DepreciationScheduleItem[]>([])
+  const [scheduleView, setScheduleView] = useState<'yearly' | 'monthly'>('yearly')
+  const [scheduleLoading, setScheduleLoading] = useState(false)
 
   const [cardModalOpen, setCardModalOpen] = useState(false)
   const [cardBankAccountId, setCardBankAccountId] = useState('')
@@ -1185,17 +1213,40 @@ export default function Dashboard({ user, onLogout }: { user: User; onLogout?: (
 
   const saveAsset = async () => {
     if (!assetName || !assetValue || !purchaseDate) return
+    
+    // Validation for depreciable assets
+    if (isDepreciable && (!salvageValue || !usefulLife)) {
+      alert('Please provide salvage value and useful life for depreciable assets')
+      return
+    }
+    
     try {
+      const body: any = { 
+        asset_name: assetName, 
+        value: assetValue, 
+        purchase_date: purchaseDate 
+      }
+      
+      if (isDepreciable) {
+        body.depreciation_method = depreciationMethod
+        body.salvage_value = salvageValue
+        body.useful_life = usefulLife
+      }
+      
       const r = await fetch(`${API_URL}/assets`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ asset_name: assetName, value: assetValue, purchase_date: purchaseDate })
+        body: JSON.stringify(body)
       })
       if (r.ok) {
         setAddAssetModalOpen(false)
         setAssetName('')
         setAssetValue('')
         setPurchaseDate('')
+        setIsDepreciable(false)
+        setDepreciationMethod('STRAIGHT_LINE')
+        setSalvageValue('')
+        setUsefulLife('')
         fetchAssets()
       } else {
         alert('Failed to save asset')
@@ -1209,9 +1260,9 @@ export default function Dashboard({ user, onLogout }: { user: User; onLogout?: (
   return (
     <div style={{ height: '100vh', width: '100%', display: 'grid', gridTemplateRows: '56px 1fr', background: 'transparent', color: 'var(--text-main)', overflow: 'hidden' }}>
       <header className="glass-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 16px', overflow: 'hidden', flexWrap: 'wrap', gap: 8 }}>
-        <div style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ fontSize: 24 }}>🌸</span>
-          BloomTech Dashboard
+        <div style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 12, fontFamily: "'Zalando Sans Expanded', sans-serif", fontSize: '24px' }}>
+          <img src="/BLOOM_AUDIT_LOGO_XS.png" alt="BloomTech Logo" style={{ height: 48, width: 'auto', objectFit: 'contain' }} />
+          Bloom Audit
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
           <span>{user.name} ({user.role})</span>
@@ -1221,12 +1272,9 @@ export default function Dashboard({ user, onLogout }: { user: User; onLogout?: (
       <main style={{ height: 'calc(100vh - 56px)', padding: 0, display: 'flex', overflow: 'hidden' }}>
         <aside className="glass-sidebar" style={{ width: navOpen ? 240 : 64, transition: 'width 0.2s ease', height: '100%', display: 'flex', flexDirection: 'column', gap: 4, padding: 12 }}>
           <button onClick={() => setNavOpen(o => !o)} aria-label="Collapse/Expand menu" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '8px', borderRadius: 8, border: '1px solid var(--primary)', background: 'var(--accent)', color: '#fff', cursor: 'pointer' }}>{navOpen ? <ChevronLeft size={20} /> : <ChevronRight size={20} />}</button>
-          <div style={{ padding: '0 20px', marginBottom: 20 }}>
-            <h2 style={{ color: 'var(--text-main)', fontSize: 20, fontWeight: 700, margin: 0, display: navOpen ? 'block' : 'none' }}>ERP System</h2>
-          </div>
-          <button onClick={() => setTab('home')} title="Dashboard" style={{ display: 'flex', alignItems: 'center', justifyContent: navOpen ? 'flex-start' : 'center', gap: navOpen ? 12 : 0, padding: '10px 12px', borderRadius: 8, border: '1px solid var(--primary)', background: tab === 'home' ? 'var(--accent)' : 'transparent', color: '#fff', cursor: 'pointer' }}>
+          <button onClick={() => setTab('home')} title="Home" style={{ display: 'flex', alignItems: 'center', justifyContent: navOpen ? 'flex-start' : 'center', gap: navOpen ? 12 : 0, padding: '10px 12px', borderRadius: 8, border: '1px solid var(--primary)', background: tab === 'home' ? 'var(--accent)' : 'transparent', color: '#fff', cursor: 'pointer' }}>
             <LayoutDashboard size={20} />
-            {navOpen && <span>Dashboard</span>}
+            {navOpen && <span>Home</span>}
           </button>
           
           <div onClick={() => setTab('employees')} style={{ cursor: 'pointer', borderRadius: 8, background: tab === 'employees' ? 'var(--accent)' : 'transparent', border: '1px solid var(--primary)', overflow: 'hidden' }}>
@@ -1316,40 +1364,61 @@ export default function Dashboard({ user, onLogout }: { user: User; onLogout?: (
               {navOpen && <span>Add Asset</span>}
             </button>
           )}
+          
+          <button onClick={() => setTab('analytics')} title="Data Analytics" style={{ display: 'flex', alignItems: 'center', justifyContent: navOpen ? 'flex-start' : 'center', gap: navOpen ? 12 : 0, padding: '10px 12px', borderRadius: 8, border: '1px solid var(--primary)', background: tab === 'analytics' ? 'var(--accent)' : 'transparent', color: '#fff', cursor: 'pointer' }}>
+            <BarChart3 size={20} />
+            {navOpen && <span>Data Analytics</span>}
+          </button>
         </aside>
         <section style={{ flex: 1, overflowY: 'auto', background: 'transparent', borderRadius: 0, border: 'none', padding: 24 }}>
           {tab === 'home' && (
-            <div className="dashboard-grid">
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-                <h1 style={{ marginTop: 0, fontSize: 28 }}>Dashboard Overview</h1>
+            <div style={{ display: 'grid', gap: 24 }}>
+              <h1 style={{ marginTop: 0, fontSize: 28 }}>Welcome to Bloom Audit</h1>
               
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: 24 }}>
-                <div className="glass-card" style={{ padding: 24 }}>
-                  <h3 style={{ margin: '0 0 16px', color: 'var(--text-main)', fontSize: 16 }}>Total Project Income</h3>
-                  <div style={{ fontSize: 32, fontWeight: 700, color: 'var(--primary)' }}>
-                    Rs. {projects.reduce((sum, p) => sum + Number(p.initial_cost_budget) + Number(p.extra_budget_allocation), 0).toLocaleString()}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 24, alignItems: 'start' }}>
+                {/* Left column - Income cards and widgets */}
+                <div style={{ display: 'grid', gap: 24 }}>
+                  {/* Income Cards */}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: 24 }}>
+                    <div className="glass-card" style={{ padding: 24 }}>
+                      <h3 style={{ margin: '0 0 16px', color: 'var(--text-main)', fontSize: 16 }}>Total Project Income</h3>
+                      <div style={{ fontSize: 32, fontWeight: 700, color: 'var(--primary)' }}>
+                        Rs. {projects.reduce((sum, p) => sum + Number(p.initial_cost_budget) + Number(p.extra_budget_allocation), 0).toLocaleString()}
+                      </div>
+                    </div>
+
+                    <div className="glass-card" style={{ padding: 24 }}>
+                      <h3 style={{ margin: '0 0 16px', color: 'var(--text-main)', fontSize: 16 }}>Ongoing Project Income</h3>
+                      <div style={{ fontSize: 32, fontWeight: 700, color: '#0284c7' }}>
+                        Rs. {projects.filter(p => p.status === 'ongoing').reduce((sum, p) => sum + Number(p.initial_cost_budget) + Number(p.extra_budget_allocation), 0).toLocaleString()}
+                      </div>
+                    </div>
+
+                    <div className="glass-card" style={{ padding: 24 }}>
+                      <h3 style={{ margin: '0 0 16px', color: 'var(--text-main)', fontSize: 16 }}>Completed Project Income</h3>
+                      <div style={{ fontSize: 32, fontWeight: 700, color: '#10b981' }}>
+                        Rs. {projects.filter(p => p.status === 'end' || p.status === 'completed').reduce((sum, p) => sum + Number(p.initial_cost_budget) + Number(p.extra_budget_allocation), 0).toLocaleString()}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Notes and Todos Widgets */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, maxHeight: '500px' }}>
+                    <div style={{ height: '100%' }}>
+                      <NotesWidget userId={user.id} />
+                    </div>
+                    <div style={{ height: '100%' }}>
+                      <TodosWidget userId={user.id} />
+                    </div>
                   </div>
                 </div>
 
-                <div className="glass-card" style={{ padding: 24 }}>
-                  <h3 style={{ margin: '0 0 16px', color: 'var(--text-main)', fontSize: 16 }}>Ongoing Project Income</h3>
-                  <div style={{ fontSize: 32, fontWeight: 700, color: '#0284c7' }}>
-                    Rs. {projects.filter(p => p.status === 'ongoing').reduce((sum, p) => sum + Number(p.initial_cost_budget) + Number(p.extra_budget_allocation), 0).toLocaleString()}
-                  </div>
-                </div>
-
-                <div className="glass-card" style={{ padding: 24 }}>
-                  <h3 style={{ margin: '0 0 16px', color: 'var(--text-main)', fontSize: 16 }}>Completed Project Income</h3>
-                  <div style={{ fontSize: 32, fontWeight: 700, color: '#10b981' }}>
-                    Rs. {projects.filter(p => p.status === 'end' || p.status === 'completed').reduce((sum, p) => sum + Number(p.initial_cost_budget) + Number(p.extra_budget_allocation), 0).toLocaleString()}
-                  </div>
+                {/* Right column - Calendar */}
+                <div style={{ minWidth: 320, maxWidth: 400, position: 'sticky', top: 24 }}>
+                  <CalendarWidget />
                 </div>
               </div>
             </div>
-            <div style={{ position: 'sticky', top: 0 }}>
-              <CalendarWidget />
-            </div>
-          </div>
         )}
           {tab === 'employees' && employeeSubTab === 'employees' && (
             <div style={{ width: '100%', display: 'grid', gap: 16 }}>
@@ -2140,6 +2209,7 @@ export default function Dashboard({ user, onLogout }: { user: User; onLogout?: (
               )}
             </div>
           )}
+          {tab === 'analytics' && <DataAnalytics />}
           {tab === 'assets' && (
             <div style={{ width: '100%', display: 'grid', gap: 16 }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -2158,19 +2228,62 @@ export default function Dashboard({ user, onLogout }: { user: User; onLogout?: (
                       <tr style={{ background: 'var(--primary)', color: '#fff' }}>
                         <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 600 }}>ID</th>
                         <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 600 }}>Asset Name</th>
-                        <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 600 }}>Value</th>
+                        <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 600 }}>Original Value</th>
+                        <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 600 }}>Current Book Value</th>
+                        <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 600 }}>Depreciation</th>
                         <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 600 }}>Purchase Date</th>
-                        <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 600 }}>Added On</th>
+                        <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 600 }}>Actions</th>
                       </tr>
                     </thead>
                     <tbody>
                       {assets.map((asset, idx) => (
                         <tr key={asset.id} style={{ borderBottom: idx < assets.length - 1 ? '1px solid #e0e0e0' : 'none' }}>
                           <td style={{ padding: '12px 16px' }}>{asset.id}</td>
-                          <td style={{ padding: '12px 16px' }}>{asset.asset_name}</td>
-                          <td style={{ padding: '12px 16px' }}>{Number(asset.value).toLocaleString()}</td>
+                          <td style={{ padding: '12px 16px', fontWeight: 500 }}>{asset.asset_name}</td>
+                          <td style={{ padding: '12px 16px' }}>LKR {Number(asset.value).toLocaleString()}</td>
+                          <td style={{ padding: '12px 16px', fontWeight: 600, color: asset.depreciation_method ? '#0284c7' : 'inherit' }}>
+                            LKR {Number(asset.current_book_value || asset.value).toLocaleString()}
+                          </td>
+                          <td style={{ padding: '12px 16px' }}>
+                            {asset.depreciation_method ? (
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                                <span style={{ padding: '4px 8px', borderRadius: 4, background: asset.depreciation_method === 'STRAIGHT_LINE' ? '#e3f2fd' : '#fff3e0', color: asset.depreciation_method === 'STRAIGHT_LINE' ? '#1565c0' : '#e65100', fontSize: 11, fontWeight: 600, display: 'inline-block' }}>
+                                  {asset.depreciation_method === 'STRAIGHT_LINE' ? 'Straight-Line' : 'DDB'}
+                                </span>
+                                <span style={{ fontSize: 12, color: '#666' }}>
+                                  Acc: LKR {Number(asset.accumulated_depreciation || 0).toLocaleString()}
+                                </span>
+                              </div>
+                            ) : (
+                              <span style={{ color: '#999', fontSize: 13 }}>Not Depreciable</span>
+                            )}
+                          </td>
                           <td style={{ padding: '12px 16px' }}>{new Date(asset.purchase_date).toLocaleDateString()}</td>
-                          <td style={{ padding: '12px 16px' }}>{new Date(asset.created_at).toLocaleDateString()}</td>
+                          <td style={{ padding: '12px 16px' }}>
+                            {asset.depreciation_method && (
+                              <button 
+                                onClick={async () => {
+                                  setSelectedAssetForSchedule(asset)
+                                  setScheduleLoading(true)
+                                  setDepreciationScheduleModalOpen(true)
+                                  try {
+                                    const r = await fetch(`${API_URL}/assets/${asset.id}/depreciation-schedule?view=${scheduleView}`)
+                                    if (r.ok) {
+                                      const data = await r.json()
+                                      setDepreciationSchedule(data.schedule || [])
+                                    }
+                                  } catch (err) {
+                                    console.error('Error fetching depreciation schedule:', err)
+                                  } finally {
+                                    setScheduleLoading(false)
+                                  }
+                                }}
+                                style={{ padding: '6px 12px', borderRadius: 6, border: '1px solid #2196F3', background: '#2196F3', color: '#fff', cursor: 'pointer', fontSize: '12px', fontWeight: 600 }}
+                              >
+                                View Schedule
+                              </button>
+                            )}
+                          </td>
                         </tr>
                       ))}
                     </tbody>
@@ -2856,8 +2969,8 @@ export default function Dashboard({ user, onLogout }: { user: User; onLogout?: (
       )}
 
       {addAssetModalOpen && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'grid', placeItems: 'center', zIndex: 1000, padding: '20px' }} onClick={() => { setAddAssetModalOpen(false); setAssetName(''); setAssetValue(''); setPurchaseDate('') }}>
-          <div className="glass-panel" style={{ width: 'min(500px, 96vw)', padding: 24, borderRadius: 16 }} onClick={e => e.stopPropagation()}>
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'grid', placeItems: 'center', zIndex: 1000, padding: '20px' }} onClick={() => { setAddAssetModalOpen(false); setAssetName(''); setAssetValue(''); setPurchaseDate(''); setIsDepreciable(false); setSalvageValue(''); setUsefulLife('') }}>
+          <div className="glass-panel" style={{ width: 'min(600px, 96vw)', padding: 24, borderRadius: 16, maxHeight: '90vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
             <h2 style={{ marginTop: 0 }}>Add New Asset</h2>
             <div style={{ display: 'grid', gap: 12 }}>
               <label style={{ display: 'grid', gap: 6 }}>
@@ -2865,17 +2978,204 @@ export default function Dashboard({ user, onLogout }: { user: User; onLogout?: (
                 <input value={assetName} onChange={e => setAssetName(e.target.value)} style={{ padding: '10px 12px', borderRadius: 8, border: '1px solid #ccc' }} required />
               </label>
               <label style={{ display: 'grid', gap: 6 }}>
-                <span style={{ fontWeight: 500 }}>Value *</span>
+                <span style={{ fontWeight: 500 }}>Original Value (Cost) *</span>
                 <input type="number" value={assetValue} onChange={e => setAssetValue(e.target.value)} style={{ padding: '10px 12px', borderRadius: 8, border: '1px solid #ccc' }} required />
               </label>
               <label style={{ display: 'grid', gap: 6 }}>
                 <span style={{ fontWeight: 500 }}>Purchase Date *</span>
                 <input type="date" value={purchaseDate} onChange={e => setPurchaseDate(e.target.value)} style={{ padding: '10px 12px', borderRadius: 8, border: '1px solid #ccc' }} required />
               </label>
+              
+              <div style={{ borderTop: '2px dashed #e0e0e0', paddingTop: 16, marginTop: 8 }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', marginBottom: 16 }}>
+                  <input 
+                    type="checkbox" 
+                    checked={isDepreciable} 
+                    onChange={e => setIsDepreciable(e.target.checked)} 
+                    style={{ width: 18, height: 18, cursor: 'pointer' }}
+                  />
+                  <span style={{ fontWeight: 600, fontSize: 15 }}>This is a depreciable asset</span>
+                </label>
+                
+                {isDepreciable && (
+                  <div style={{ display: 'grid', gap: 12, paddingLeft: 26, background: '#f8f9fa', padding: 16, borderRadius: 8 }}>
+                    <label style={{ display: 'grid', gap: 6 }}>
+                      <span style={{ fontWeight: 500 }}>Depreciation Method *</span>
+                      <select 
+                        value={depreciationMethod} 
+                        onChange={e => setDepreciationMethod(e.target.value as 'STRAIGHT_LINE' | 'DOUBLE_DECLINING')} 
+                        style={{ padding: '10px 12px', borderRadius: 8, border: '1px solid #ccc' }}
+                      >
+                        <option value="STRAIGHT_LINE">Straight-Line Depreciation</option>
+                        <option value="DOUBLE_DECLINING">Double-Declining Balance (DDB)</option>
+                      </select>
+                      <div style={{ fontSize: 12, color: '#666', marginTop: 4 }}>
+                        {depreciationMethod === 'STRAIGHT_LINE' 
+                          ? '📊 Best for: Office furniture, buildings - loses value steadily'
+                          : '📉 Best for: Technology, computers - becomes obsolete quickly'
+                        }
+                      </div>
+                    </label>
+                    
+                    <label style={{ display: 'grid', gap: 6 }}>
+                      <span style={{ fontWeight: 500 }}>Salvage Value *</span>
+                      <input 
+                        type="number" 
+                        value={salvageValue} 
+                        onChange={e => setSalvageValue(e.target.value)} 
+                        placeholder="Estimated value at end of life"
+                        style={{ padding: '10px 12px', borderRadius: 8, border: '1px solid #ccc' }} 
+                        required 
+                      />
+                      <div style={{ fontSize: 12, color: '#666' }}>The estimated value when the asset reaches end of its useful life</div>
+                    </label>
+                    
+                    <label style={{ display: 'grid', gap: 6 }}>
+                      <span style={{ fontWeight: 500 }}>Useful Life (Years) *</span>
+                      <input 
+                        type="number" 
+                        value={usefulLife} 
+                        onChange={e => setUsefulLife(e.target.value)} 
+                        placeholder="e.g., 5"
+                        min="1"
+                        style={{ padding: '10px 12px', borderRadius: 8, border: '1px solid #ccc' }} 
+                        required 
+                      />
+                      <div style={{ fontSize: 12, color: '#666' }}>Expected number of years the asset will be in service</div>
+                    </label>
+                  </div>
+                )}
+              </div>
             </div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 24, gap: 12 }}>
-              <button onClick={() => { setAddAssetModalOpen(false); setAssetName(''); setAssetValue(''); setPurchaseDate('') }} className="btn-secondary">Cancel</button>
+              <button onClick={() => { setAddAssetModalOpen(false); setAssetName(''); setAssetValue(''); setPurchaseDate(''); setIsDepreciable(false); setSalvageValue(''); setUsefulLife('') }} className="btn-secondary">Cancel</button>
               <button onClick={saveAsset} className="btn-primary">Save Asset</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {depreciationScheduleModalOpen && selectedAssetForSchedule && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'grid', placeItems: 'center', zIndex: 1000, padding: '20px', overflowY: 'auto' }} onClick={() => { setDepreciationScheduleModalOpen(false); setSelectedAssetForSchedule(null); setDepreciationSchedule([]) }}>
+          <div className="glass-panel" style={{ width: 'min(900px, 96vw)', maxHeight: '90vh', padding: 24, borderRadius: 16, overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
+            <h2 style={{ marginTop: 0 }}>Depreciation Schedule - {selectedAssetForSchedule.asset_name}</h2>
+            
+            <div style={{ background: '#f8f9fa', padding: 16, borderRadius: 8, marginBottom: 16 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12 }}>
+                <div>
+                  <div style={{ fontSize: 12, color: '#666', fontWeight: 600 }}>Method</div>
+                  <div style={{ fontSize: 14, fontWeight: 600 }}>
+                    {selectedAssetForSchedule.depreciation_method === 'STRAIGHT_LINE' ? 'Straight-Line' : 'Double-Declining Balance'}
+                  </div>
+                </div>
+                <div>
+                  <div style={{ fontSize: 12, color: '#666', fontWeight: 600 }}>Original Value</div>
+                  <div style={{ fontSize: 14, fontWeight: 600 }}>LKR {Number(selectedAssetForSchedule.value).toLocaleString()}</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: 12, color: '#666', fontWeight: 600 }}>Salvage Value</div>
+                  <div style={{ fontSize: 14, fontWeight: 600 }}>LKR {Number(selectedAssetForSchedule.salvage_value).toLocaleString()}</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: 12, color: '#666', fontWeight: 600 }}>Useful Life</div>
+                  <div style={{ fontSize: 14, fontWeight: 600 }}>{selectedAssetForSchedule.useful_life} years</div>
+                </div>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: 12, marginBottom: 16 }}>
+              <button 
+                onClick={async () => {
+                  setScheduleView('yearly')
+                  setScheduleLoading(true)
+                  try {
+                    const r = await fetch(`${API_URL}/assets/${selectedAssetForSchedule.id}/depreciation-schedule?view=yearly`)
+                    if (r.ok) {
+                      const data = await r.json()
+                      setDepreciationSchedule(data.schedule || [])
+                    }
+                  } catch (err) {
+                    console.error(err)
+                  } finally {
+                    setScheduleLoading(false)
+                  }
+                }}
+                style={{ padding: '8px 16px', borderRadius: 8, border: scheduleView === 'yearly' ? '2px solid var(--primary)' : '1px solid #ccc', background: scheduleView === 'yearly' ? 'var(--primary)' : '#fff', color: scheduleView === 'yearly' ? '#fff' : '#333', cursor: 'pointer', fontWeight: 600 }}
+              >
+                Yearly View
+              </button>
+              <button 
+                onClick={async () => {
+                  setScheduleView('monthly')
+                  setScheduleLoading(true)
+                  try {
+                    const r = await fetch(`${API_URL}/assets/${selectedAssetForSchedule.id}/depreciation-schedule?view=monthly`)
+                    if (r.ok) {
+                      const data = await r.json()
+                      setDepreciationSchedule(data.schedule || [])
+                    }
+                  } catch (err) {
+                    console.error(err)
+                  } finally {
+                    setScheduleLoading(false)
+                  }
+                }}
+                style={{ padding: '8px 16px', borderRadius: 8, border: scheduleView === 'monthly' ? '2px solid var(--primary)' : '1px solid #ccc', background: scheduleView === 'monthly' ? 'var(--primary)' : '#fff', color: scheduleView === 'monthly' ? '#fff' : '#333', cursor: 'pointer', fontWeight: 600 }}
+              >
+                Monthly View
+              </button>
+            </div>
+
+            {scheduleLoading ? (
+              <div style={{ padding: 48, textAlign: 'center' }}>Loading schedule...</div>
+            ) : (
+              <div style={{ width: '100%', overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                  <thead>
+                    <tr style={{ background: 'var(--primary)', color: '#fff' }}>
+                      <th style={{ padding: '10px 12px', textAlign: 'left', fontWeight: 600 }}>Period</th>
+                      <th style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 600 }}>Beginning Book Value</th>
+                      <th style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 600 }}>Depreciation</th>
+                      <th style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 600 }}>Accumulated Depreciation</th>
+                      <th style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 600 }}>Ending Book Value</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {depreciationSchedule.map((item, idx) => (
+                      <tr 
+                        key={idx} 
+                        style={{ 
+                          borderBottom: idx < depreciationSchedule.length - 1 ? '1px solid #e0e0e0' : 'none',
+                          background: item.isCurrent ? '#fff3cd' : 'transparent'
+                        }}
+                      >
+                        <td style={{ padding: '10px 12px', fontWeight: 500 }}>
+                          {item.period}
+                          {item.isCurrent && <span style={{ marginLeft: 8, fontSize: 11, padding: '2px 6px', borderRadius: 4, background: '#ffc107', color: '#000', fontWeight: 700 }}>CURRENT</span>}
+                        </td>
+                        <td style={{ padding: '10px 12px', textAlign: 'right' }}>
+                          LKR {Number(item.beginningBookValue).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </td>
+                        <td style={{ padding: '10px 12px', textAlign: 'right', color: '#c62828', fontWeight: 600 }}>
+                          LKR {Number(item.depreciation).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </td>
+                        <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 600 }}>
+                          LKR {Number(item.accumulatedDepreciation).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </td>
+                        <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 700, color: '#0284c7' }}>
+                          LKR {Number(item.endingBookValue).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 24 }}>
+              <button onClick={() => { setDepreciationScheduleModalOpen(false); setSelectedAssetForSchedule(null); setDepreciationSchedule([]) }} className="btn-secondary">
+                Close
+              </button>
             </div>
           </div>
         </div>
