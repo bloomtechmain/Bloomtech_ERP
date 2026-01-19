@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { API_URL } from '../config/api'
 import CalendarWidget from '../components/CalendarWidget'
+import NotesWidget from '../components/NotesWidget'
+import TodosWidget from '../components/TodosWidget'
 import DataAnalytics from './DataAnalytics'
 import { LayoutDashboard, Users, ClipboardList, Store, FolderOpen, Banknote, Landmark, Receipt, Coins, Inbox, Plus, CreditCard, Building2, ChevronLeft, ChevronRight, ChevronDown, BarChart3 } from 'lucide-react'
 
@@ -1270,9 +1272,9 @@ export default function Dashboard({ user, onLogout }: { user: User; onLogout?: (
       <main style={{ height: 'calc(100vh - 56px)', padding: 0, display: 'flex', overflow: 'hidden' }}>
         <aside className="glass-sidebar" style={{ width: navOpen ? 240 : 64, transition: 'width 0.2s ease', height: '100%', display: 'flex', flexDirection: 'column', gap: 4, padding: 12 }}>
           <button onClick={() => setNavOpen(o => !o)} aria-label="Collapse/Expand menu" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '8px', borderRadius: 8, border: '1px solid var(--primary)', background: 'var(--accent)', color: '#fff', cursor: 'pointer' }}>{navOpen ? <ChevronLeft size={20} /> : <ChevronRight size={20} />}</button>
-          <button onClick={() => setTab('home')} title="Dashboard" style={{ display: 'flex', alignItems: 'center', justifyContent: navOpen ? 'flex-start' : 'center', gap: navOpen ? 12 : 0, padding: '10px 12px', borderRadius: 8, border: '1px solid var(--primary)', background: tab === 'home' ? 'var(--accent)' : 'transparent', color: '#fff', cursor: 'pointer' }}>
+          <button onClick={() => setTab('home')} title="Home" style={{ display: 'flex', alignItems: 'center', justifyContent: navOpen ? 'flex-start' : 'center', gap: navOpen ? 12 : 0, padding: '10px 12px', borderRadius: 8, border: '1px solid var(--primary)', background: tab === 'home' ? 'var(--accent)' : 'transparent', color: '#fff', cursor: 'pointer' }}>
             <LayoutDashboard size={20} />
-            {navOpen && <span>Dashboard</span>}
+            {navOpen && <span>Home</span>}
           </button>
           
           <div onClick={() => setTab('employees')} style={{ cursor: 'pointer', borderRadius: 8, background: tab === 'employees' ? 'var(--accent)' : 'transparent', border: '1px solid var(--primary)', overflow: 'hidden' }}>
@@ -1370,37 +1372,53 @@ export default function Dashboard({ user, onLogout }: { user: User; onLogout?: (
         </aside>
         <section style={{ flex: 1, overflowY: 'auto', background: 'transparent', borderRadius: 0, border: 'none', padding: 24 }}>
           {tab === 'home' && (
-            <div className="dashboard-grid">
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-                <h1 style={{ marginTop: 0, fontSize: 28 }}>Dashboard Overview</h1>
+            <div style={{ display: 'grid', gap: 24 }}>
+              <h1 style={{ marginTop: 0, fontSize: 28 }}>Welcome to Bloom Audit</h1>
               
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: 24 }}>
-                <div className="glass-card" style={{ padding: 24 }}>
-                  <h3 style={{ margin: '0 0 16px', color: 'var(--text-main)', fontSize: 16 }}>Total Project Income</h3>
-                  <div style={{ fontSize: 32, fontWeight: 700, color: 'var(--primary)' }}>
-                    Rs. {projects.reduce((sum, p) => sum + Number(p.initial_cost_budget) + Number(p.extra_budget_allocation), 0).toLocaleString()}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 24, alignItems: 'start' }}>
+                {/* Left column - Income cards and widgets */}
+                <div style={{ display: 'grid', gap: 24 }}>
+                  {/* Income Cards */}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: 24 }}>
+                    <div className="glass-card" style={{ padding: 24 }}>
+                      <h3 style={{ margin: '0 0 16px', color: 'var(--text-main)', fontSize: 16 }}>Total Project Income</h3>
+                      <div style={{ fontSize: 32, fontWeight: 700, color: 'var(--primary)' }}>
+                        Rs. {projects.reduce((sum, p) => sum + Number(p.initial_cost_budget) + Number(p.extra_budget_allocation), 0).toLocaleString()}
+                      </div>
+                    </div>
+
+                    <div className="glass-card" style={{ padding: 24 }}>
+                      <h3 style={{ margin: '0 0 16px', color: 'var(--text-main)', fontSize: 16 }}>Ongoing Project Income</h3>
+                      <div style={{ fontSize: 32, fontWeight: 700, color: '#0284c7' }}>
+                        Rs. {projects.filter(p => p.status === 'ongoing').reduce((sum, p) => sum + Number(p.initial_cost_budget) + Number(p.extra_budget_allocation), 0).toLocaleString()}
+                      </div>
+                    </div>
+
+                    <div className="glass-card" style={{ padding: 24 }}>
+                      <h3 style={{ margin: '0 0 16px', color: 'var(--text-main)', fontSize: 16 }}>Completed Project Income</h3>
+                      <div style={{ fontSize: 32, fontWeight: 700, color: '#10b981' }}>
+                        Rs. {projects.filter(p => p.status === 'end' || p.status === 'completed').reduce((sum, p) => sum + Number(p.initial_cost_budget) + Number(p.extra_budget_allocation), 0).toLocaleString()}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Notes and Todos Widgets */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24, maxHeight: '500px' }}>
+                    <div style={{ height: '100%' }}>
+                      <NotesWidget userId={user.id} />
+                    </div>
+                    <div style={{ height: '100%' }}>
+                      <TodosWidget userId={user.id} />
+                    </div>
                   </div>
                 </div>
 
-                <div className="glass-card" style={{ padding: 24 }}>
-                  <h3 style={{ margin: '0 0 16px', color: 'var(--text-main)', fontSize: 16 }}>Ongoing Project Income</h3>
-                  <div style={{ fontSize: 32, fontWeight: 700, color: '#0284c7' }}>
-                    Rs. {projects.filter(p => p.status === 'ongoing').reduce((sum, p) => sum + Number(p.initial_cost_budget) + Number(p.extra_budget_allocation), 0).toLocaleString()}
-                  </div>
-                </div>
-
-                <div className="glass-card" style={{ padding: 24 }}>
-                  <h3 style={{ margin: '0 0 16px', color: 'var(--text-main)', fontSize: 16 }}>Completed Project Income</h3>
-                  <div style={{ fontSize: 32, fontWeight: 700, color: '#10b981' }}>
-                    Rs. {projects.filter(p => p.status === 'end' || p.status === 'completed').reduce((sum, p) => sum + Number(p.initial_cost_budget) + Number(p.extra_budget_allocation), 0).toLocaleString()}
-                  </div>
+                {/* Right column - Calendar */}
+                <div style={{ minWidth: 320, maxWidth: 400, position: 'sticky', top: 24 }}>
+                  <CalendarWidget />
                 </div>
               </div>
             </div>
-            <div style={{ position: 'sticky', top: 0 }}>
-              <CalendarWidget />
-            </div>
-          </div>
         )}
           {tab === 'employees' && employeeSubTab === 'employees' && (
             <div style={{ width: '100%', display: 'grid', gap: 16 }}>

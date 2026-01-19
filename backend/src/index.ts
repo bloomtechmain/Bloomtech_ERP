@@ -11,6 +11,8 @@ import pettyCashRoutes from './routes/pettyCash'
 import receivableRoutes from './routes/receivables'
 import assetRoutes from './routes/assets'
 import analyticsRoutes from './routes/analytics'
+import notesRoutes from './routes/notes'
+import todosRoutes from './routes/todos'
 
 
 // Validate required environment variables
@@ -77,8 +79,8 @@ app.use('/petty-cash', pettyCashRoutes)
 app.use('/receivables', receivableRoutes)
 app.use('/assets', assetRoutes)
 app.use('/analytics', analyticsRoutes)
-
-
+app.use('/notes', notesRoutes)
+app.use('/todos', todosRoutes)
 
 app.post('/auth/login', async (req, res) => {
   const { email, password } = req.body as { email?: string; password?: string }
