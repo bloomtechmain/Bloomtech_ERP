@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { API_URL } from '../config/api'
-import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Area, AreaChart } from 'recharts'
+import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Area, AreaChart } from 'recharts'
 import { TrendingUp, TrendingDown, DollarSign, Users, FolderOpen, Building2, Wallet, Package, Percent, Clock, Target, Activity } from 'lucide-react'
 
 type TimePeriod = 'daily' | 'weekly' | 'monthly' | 'yearly'
@@ -196,11 +196,6 @@ export default function DataAnalytics() {
   const employeeRoleData = data.summary.employees.map(e => ({
     name: e.role,
     value: Number(e.count)
-  }))
-
-  const vendorStatusData = data.summary.vendors.map(v => ({
-    name: v.is_active ? 'Active' : 'Inactive',
-    value: Number(v.count)
   }))
 
   // Cash flow data

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { API_URL } from '../config/api'
-import { StickyNote, Plus, Pin, X, Edit2, Share2 } from 'lucide-react'
+import { StickyNote, Plus, Pin, X, Edit2 } from 'lucide-react'
 
 type Note = {
   id: number
