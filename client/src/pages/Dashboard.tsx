@@ -4,7 +4,7 @@ import CalendarWidget from '../components/CalendarWidget'
 import NotesWidget from '../components/NotesWidget'
 import TodosWidget from '../components/TodosWidget'
 import DataAnalytics from './DataAnalytics'
-import { LayoutDashboard, Users, ClipboardList, Store, FolderOpen, Banknote, Landmark, Receipt, Coins, Inbox, Plus, CreditCard, Building2, ChevronLeft, ChevronRight, ChevronDown, BarChart3 } from 'lucide-react'
+import { LayoutDashboard, Users, ClipboardList, Store, FolderOpen, Banknote, Landmark, Receipt, Coins, Inbox, Plus, PlusCircle, CreditCard, Building2, ChevronLeft, ChevronRight, ChevronDown, BarChart3 } from 'lucide-react'
 
 type User = { id: number; name: string; email: string; role: string }
 
@@ -155,6 +155,8 @@ export default function Dashboard({ user, onLogout }: { user: User; onLogout?: (
   const [tax, setTax] = useState('')
   const [saving, setSaving] = useState(false)
   const [employees, setEmployees] = useState<Employee[]>([])
+  const [employeeSearch, setEmployeeSearch] = useState('')
+  const [employeeRoleFilter, setEmployeeRoleFilter] = useState('All')
   const [loading, setLoading] = useState(false)
   const [projects, setProjects] = useState<Project[]>([])
   const [projectsLoading, setProjectsLoading] = useState(false)
@@ -195,6 +197,8 @@ export default function Dashboard({ user, onLogout }: { user: User; onLogout?: (
   const [vendorEmail, setVendorEmail] = useState('')
   const [vendorPhone, setVendorPhone] = useState('')
   const [vendorIsActive, setVendorIsActive] = useState(true)
+  const [vendorSearch, setVendorSearch] = useState('')
+  const [vendorStatusFilter, setVendorStatusFilter] = useState('All')
   const [payables, setPayables] = useState<Payable[]>([])
   const [payablesLoading, setPayablesLoading] = useState(false)
   const [isAddingBill, setIsAddingBill] = useState(false)
@@ -231,6 +235,85 @@ export default function Dashboard({ user, onLogout }: { user: User; onLogout?: (
   const [receivableStartDate, setReceivableStartDate] = useState('')
   const [receivableEndDate, setReceivableEndDate] = useState('')
   const [receivableProjectId, setReceivableProjectId] = useState('')
+
+  const [payableSearch, setPayableSearch] = useState('')
+  const [payableTypeFilter, setPayableTypeFilter] = useState('All')
+  const [payableStatusFilter, setPayableStatusFilter] = useState('All')
+
+  const [receivableSearch, setReceivableSearch] = useState('')
+  const [receivableTypeFilter, setReceivableTypeFilter] = useState('All')
+  const [receivableStatusFilter, setReceivableStatusFilter] = useState('All')
+
+  const filteredEmployees = useMemo(() => {
+    return employees.filter(emp => {
+      const searchLower = employeeSearch.toLowerCase()
+      const matchesSearch = 
+        (emp.first_name?.toLowerCase() || '').includes(searchLower) ||
+        (emp.last_name?.toLowerCase() || '').includes(searchLower) ||
+        (emp.email?.toLowerCase() || '').includes(searchLower) ||
+        (emp.employee_number?.toLowerCase() || '').includes(searchLower) ||
+        (emp.nic?.toLowerCase() || '').includes(searchLower)
+      
+      const matchesRole = employeeRoleFilter === 'All' || emp.role === employeeRoleFilter
+      return matchesSearch && matchesRole
+    })
+  }, [employees, employeeSearch, employeeRoleFilter])
+
+  const filteredVendors = useMemo(() => {
+    return (vendors || []).filter(vendor => {
+      const searchLower = vendorSearch.toLowerCase()
+      const matchesSearch = 
+        (vendor.vendor_name?.toLowerCase() || '').includes(searchLower) ||
+        (vendor.contact_email?.toLowerCase() || '').includes(searchLower) ||
+        (vendor.contact_phone?.toLowerCase() || '').includes(searchLower)
+      
+      const matchesStatus = vendorStatusFilter === 'All' 
+        ? true 
+        : vendorStatusFilter === 'Active' 
+          ? vendor.is_active 
+          : !vendor.is_active
+      
+      return matchesSearch && matchesStatus
+    })
+  }, [vendors, vendorSearch, vendorStatusFilter])
+
+  const filteredPayables = useMemo(() => {
+    return payables.filter(p => {
+      const searchLower = payableSearch.toLowerCase()
+      const matchesSearch = 
+        (p.payable_name?.toLowerCase() || '').includes(searchLower) ||
+        (p.description?.toLowerCase() || '').includes(searchLower)
+      
+      const matchesType = payableTypeFilter === 'All' || p.payable_type === payableTypeFilter
+      const matchesStatus = payableStatusFilter === 'All' 
+        ? true 
+        : payableStatusFilter === 'Active' 
+          ? p.is_active 
+          : !p.is_active
+      
+      return matchesSearch && matchesType && matchesStatus
+    })
+  }, [payables, payableSearch, payableTypeFilter, payableStatusFilter])
+
+  const filteredReceivables = useMemo(() => {
+    return receivables.filter(r => {
+      const searchLower = receivableSearch.toLowerCase()
+      const matchesSearch = 
+        (r.payer_name?.toLowerCase() || '').includes(searchLower) ||
+        (r.receivable_name?.toLowerCase() || '').includes(searchLower) ||
+        (r.description?.toLowerCase() || '').includes(searchLower)
+      
+      const matchesType = receivableTypeFilter === 'All' || r.receivable_type === receivableTypeFilter
+      const matchesStatus = receivableStatusFilter === 'All' 
+        ? true 
+        : receivableStatusFilter === 'Active' 
+          ? r.is_active 
+          : !r.is_active
+      
+      return matchesSearch && matchesType && matchesStatus
+    })
+  }, [receivables, receivableSearch, receivableTypeFilter, receivableStatusFilter])
+
   const [receivableIsActive, setReceivableIsActive] = useState(true)
   const [receivableBankAccountId, setReceivableBankAccountId] = useState('')
   const [receivablePaymentMethod, setReceivablePaymentMethod] = useState('')
@@ -522,7 +605,11 @@ export default function Dashboard({ user, onLogout }: { user: User; onLogout?: (
       const r = await fetch(`${API_URL}/vendors`)
       if (r.ok) {
         const data = await r.json()
-        setVendors(data.vendors)
+        const normalizedVendors = (data.vendors || []).map((v: any) => ({
+          ...v,
+          is_active: v.is_active === true || v.is_active === 1 || v.is_active === '1' || v.is_active === 'true'
+        }))
+        setVendors(normalizedVendors)
       }
     } catch (e) {
       console.error('Failed to fetch vendors', e)
@@ -1271,7 +1358,6 @@ export default function Dashboard({ user, onLogout }: { user: User; onLogout?: (
       </header>
       <main style={{ height: 'calc(100vh - 56px)', padding: 0, display: 'flex', overflow: 'hidden' }}>
         <aside className="glass-sidebar" style={{ width: navOpen ? 240 : 64, transition: 'width 0.2s ease', height: '100%', display: 'flex', flexDirection: 'column', gap: 4, padding: 12 }}>
-          <button onClick={() => setNavOpen(o => !o)} aria-label="Collapse/Expand menu" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '8px', borderRadius: 8, border: '1px solid var(--primary)', background: 'var(--accent)', color: '#fff', cursor: 'pointer' }}>{navOpen ? <ChevronLeft size={20} /> : <ChevronRight size={20} />}</button>
           <button onClick={() => setTab('home')} title="Home" style={{ display: 'flex', alignItems: 'center', justifyContent: navOpen ? 'flex-start' : 'center', gap: navOpen ? 12 : 0, padding: '10px 12px', borderRadius: 8, border: '1px solid var(--primary)', background: tab === 'home' ? 'var(--accent)' : 'transparent', color: '#fff', cursor: 'pointer' }}>
             <LayoutDashboard size={20} />
             {navOpen && <span>Home</span>}
@@ -1292,9 +1378,17 @@ export default function Dashboard({ user, onLogout }: { user: User; onLogout?: (
                 <ClipboardList size={18} />
                 {navOpen && <span>Employee List</span>}
               </button>
-              <button onClick={() => setEmployeeSubTab('vendors')} title="Vendors" style={{ display: 'flex', alignItems: 'center', justifyContent: navOpen ? 'flex-start' : 'center', gap: navOpen ? 12 : 0, padding: '8px 10px', borderRadius: 8, border: '1px solid var(--primary)', background: employeeSubTab === 'vendors' ? 'rgba(255,255,255,0.2)' : 'transparent', color: '#fff', cursor: 'pointer', marginLeft: navOpen ? 24 : 0 }}>
+              <button onClick={() => setAddOpen(true)} title="Add Employee" style={{ display: 'flex', alignItems: 'center', justifyContent: navOpen ? 'flex-start' : 'center', gap: navOpen ? 12 : 0, padding: '8px 10px', borderRadius: 8, border: '1px solid var(--primary)', background: 'transparent', color: '#fff', cursor: 'pointer', marginLeft: navOpen ? 24 : 0 }}>
+                <Plus size={16} />
+                {navOpen && <span>Add Employee</span>}
+              </button>
+              <button onClick={() => { setEmployeeSubTab('vendors'); setIsAddingVendor(false) }} title="Vendors" style={{ display: 'flex', alignItems: 'center', justifyContent: navOpen ? 'flex-start' : 'center', gap: navOpen ? 12 : 0, padding: '8px 10px', borderRadius: 8, border: '1px solid var(--primary)', background: employeeSubTab === 'vendors' ? 'rgba(255,255,255,0.2)' : 'transparent', color: '#fff', cursor: 'pointer', marginLeft: navOpen ? 24 : 0 }}>
                 <Store size={18} />
                 {navOpen && <span>Vendors</span>}
+              </button>
+              <button onClick={() => { setEmployeeSubTab('vendors'); setIsAddingVendor(true) }} title="Add Vendor" style={{ display: 'flex', alignItems: 'center', justifyContent: navOpen ? 'flex-start' : 'center', gap: navOpen ? 12 : 0, padding: '8px 10px', borderRadius: 8, border: '1px solid var(--primary)', background: 'transparent', color: '#fff', cursor: 'pointer', marginLeft: navOpen ? 24 : 0 }}>
+                <Plus size={16} />
+                {navOpen && <span>Add Vendor</span>}
               </button>
             </>
           )}
@@ -1321,18 +1415,30 @@ export default function Dashboard({ user, onLogout }: { user: User; onLogout?: (
           </div>
           {tab === 'accounting' && (
             <>
-              <button onClick={() => setAccountingSubTab('accounts')} title="Accounts" style={{ display: 'flex', alignItems: 'center', justifyContent: navOpen ? 'flex-start' : 'center', gap: navOpen ? 12 : 0, padding: '8px 10px', borderRadius: 8, border: '1px solid var(--primary)', background: accountingSubTab === 'accounts' ? 'rgba(255,255,255,0.2)' : 'transparent', color: '#fff', cursor: 'pointer', marginLeft: navOpen ? 24 : 0 }}>
+              <button onClick={() => { setAccountingSubTab('accounts'); setIsAddingBill(false); setIsReplenishing(false); setIsAddingReceivable(false) }} title="Accounts" style={{ display: 'flex', alignItems: 'center', justifyContent: navOpen ? 'flex-start' : 'center', gap: navOpen ? 12 : 0, padding: '8px 10px', borderRadius: 8, border: '1px solid var(--primary)', background: accountingSubTab === 'accounts' ? 'rgba(255,255,255,0.2)' : 'transparent', color: '#fff', cursor: 'pointer', marginLeft: navOpen ? 24 : 0 }}>
                 <Landmark size={18} />
                 {navOpen && <span>Accounts</span>}
               </button>
-              <button onClick={() => setAccountingSubTab('payable')} title="Payable" style={{ display: 'flex', alignItems: 'center', justifyContent: navOpen ? 'flex-start' : 'center', gap: navOpen ? 12 : 0, padding: '8px 10px', borderRadius: 8, border: '1px solid var(--primary)', background: accountingSubTab === 'payable' ? 'rgba(255,255,255,0.2)' : 'transparent', color: '#fff', cursor: 'pointer', marginLeft: navOpen ? 24 : 0 }}>
+              <button onClick={() => { setAccountingSubTab('payable'); setIsAddingBill(false) }} title="Payable" style={{ display: 'flex', alignItems: 'center', justifyContent: navOpen ? 'flex-start' : 'center', gap: navOpen ? 12 : 0, padding: '8px 10px', borderRadius: 8, border: '1px solid var(--primary)', background: accountingSubTab === 'payable' ? 'rgba(255,255,255,0.2)' : 'transparent', color: '#fff', cursor: 'pointer', marginLeft: navOpen ? 24 : 0 }}>
                 <Receipt size={18} />
                 {navOpen && <span>Payable</span>}
               </button>
-              <button onClick={() => { setAccountingSubTab('petty_cash'); setBillType('PETTY_CASH') }} title="Petty Cash" style={{ display: 'flex', alignItems: 'center', justifyContent: navOpen ? 'flex-start' : 'center', gap: navOpen ? 12 : 0, padding: '8px 10px', borderRadius: 8, border: '1px solid var(--primary)', background: accountingSubTab === 'petty_cash' ? 'rgba(255,255,255,0.2)' : 'transparent', color: '#fff', cursor: 'pointer', marginLeft: navOpen ? 24 : 0 }}>
+              <button onClick={() => { setAccountingSubTab('petty_cash'); setBillType('PETTY_CASH'); setIsAddingBill(false); setIsReplenishing(false) }} title="Petty Cash" style={{ display: 'flex', alignItems: 'center', justifyContent: navOpen ? 'flex-start' : 'center', gap: navOpen ? 12 : 0, padding: '8px 10px', borderRadius: 8, border: '1px solid var(--primary)', background: accountingSubTab === 'petty_cash' ? 'rgba(255,255,255,0.2)' : 'transparent', color: '#fff', cursor: 'pointer', marginLeft: navOpen ? 24 : 0 }}>
                 <Coins size={18} />
                 {navOpen && <span>Petty Cash</span>}
               </button>
+              {accountingSubTab === 'petty_cash' && (
+                <>
+                  <button onClick={() => setIsReplenishing(true)} title="Replenish Petty Cash" style={{ display: 'flex', alignItems: 'center', justifyContent: navOpen ? 'flex-start' : 'center', gap: navOpen ? 12 : 0, padding: '8px 10px', borderRadius: 8, border: '1px solid var(--primary)', background: 'transparent', color: '#fff', cursor: 'pointer', marginLeft: navOpen ? 48 : 0, fontSize: '0.9em' }}>
+                    <Plus size={16} />
+                    {navOpen && <span>Replenish</span>}
+                  </button>
+                  <button onClick={() => { setBillType('PETTY_CASH'); setIsAddingBill(true) }} title="Add Petty Cash Bill" style={{ display: 'flex', alignItems: 'center', justifyContent: navOpen ? 'flex-start' : 'center', gap: navOpen ? 12 : 0, padding: '8px 10px', borderRadius: 8, border: '1px solid var(--primary)', background: 'transparent', color: '#fff', cursor: 'pointer', marginLeft: navOpen ? 48 : 0, fontSize: '0.9em' }}>
+                    <Plus size={16} />
+                    {navOpen && <span>Add Bill</span>}
+                  </button>
+                </>
+              )}
               <button onClick={() => { setAccountingSubTab('receivable'); setIsAddingReceivable(false) }} title="Receivable" style={{ display: 'flex', alignItems: 'center', justifyContent: navOpen ? 'flex-start' : 'center', gap: navOpen ? 12 : 0, padding: '8px 10px', borderRadius: 8, border: '1px solid var(--primary)', background: accountingSubTab === 'receivable' ? 'rgba(255,255,255,0.2)' : 'transparent', color: '#fff', cursor: 'pointer', marginLeft: navOpen ? 24 : 0 }}>
                 <Inbox size={18} />
                 {navOpen && <span>Receivable</span>}
@@ -1369,6 +1475,32 @@ export default function Dashboard({ user, onLogout }: { user: User; onLogout?: (
             <BarChart3 size={20} />
             {navOpen && <span>Data Analytics</span>}
           </button>
+          
+          <div style={{ marginTop: 'auto', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: 8 }}>
+            <button 
+              onClick={() => setNavOpen(o => !o)} 
+              title={navOpen ? "Collapse Sidebar" : "Expand Sidebar"}
+              style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: navOpen ? 'flex-start' : 'center', 
+                gap: navOpen ? 12 : 0, 
+                padding: '10px 12px', 
+                borderRadius: 8, 
+                border: 'none', 
+                background: 'transparent', 
+                color: '#fff', 
+                cursor: 'pointer',
+                width: '100%',
+                transition: 'background 0.2s'
+              }}
+              onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.1)'}
+              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+            >
+              {navOpen ? <ChevronLeft size={20} /> : <ChevronRight size={20} />}
+              {navOpen && <span>Collapse Sidebar</span>}
+            </button>
+          </div>
         </aside>
         <section style={{ flex: 1, overflowY: 'auto', background: 'transparent', borderRadius: 0, border: 'none', padding: 24 }}>
           {tab === 'home' && (
@@ -1424,13 +1556,46 @@ export default function Dashboard({ user, onLogout }: { user: User; onLogout?: (
             <div style={{ width: '100%', display: 'grid', gap: 16 }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <h1 style={{ marginTop: 0, fontSize: 28 }}>Employee Management</h1>
-                <button onClick={() => setAddOpen(true)} style={{ padding: '10px 16px', borderRadius: 8, background: 'var(--accent)', color: '#fff', border: 'none', cursor: 'pointer', fontWeight: 600 }}>+ Add Employee</button>
               </div>
-              <p style={{ margin: 0 }}>Manage employees here. Add, edit, and view records.</p>
+              <div className="glass-card" style={{ padding: '16px' }}>
+                <h3 style={{ margin: '0 0 8px', fontSize: '16px', color: 'var(--primary)' }}>In-App Guidance</h3>
+                <p style={{ margin: 0, lineHeight: 1.5, color: 'var(--text-main)' }}>
+                  This section displays a list of all employees registered in the system. 
+                  You can review employee information such as name, role, department, or status. 
+                  Use the filtering options to narrow down the list and quickly locate employees by specific criteria.
+                </p>
+                <p style={{ margin: '12px 0 0', lineHeight: 1.5, color: 'var(--text-main)' }}>
+                  Click the <span onClick={() => setAddOpen(true)} style={{ color: 'var(--primary)', cursor: 'pointer', textDecoration: 'underline', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 2 }}><Plus size={14} />Add Employee</span> button to add a new employee to the system. 
+                  You will be asked to enter employee details such as personal information, job role, and other required data before saving.
+                </p>
+              </div>
+              
+              <div style={{ display: 'flex', gap: 16, alignItems: 'center', background: '#f8f9fa', padding: 12, borderRadius: 8 }}>
+                <input 
+                  type="text" 
+                  placeholder="Search by name, email, NIC..." 
+                  value={employeeSearch}
+                  onChange={e => setEmployeeSearch(e.target.value)}
+                  style={{ padding: '8px 12px', borderRadius: 6, border: '1px solid #ccc', minWidth: 250 }}
+                />
+                <select 
+                  value={employeeRoleFilter} 
+                  onChange={e => setEmployeeRoleFilter(e.target.value)}
+                  style={{ padding: '8px 12px', borderRadius: 6, border: '1px solid #ccc' }}
+                >
+                  <option value="All">All Roles</option>
+                  <option value="IT">IT</option>
+                  <option value="Accounting">Accounting</option>
+                  <option value="Marketing">Marketing</option>
+                </select>
+              </div>
+
               {loading ? (
                 <div style={{ padding: 24, textAlign: 'center' }}>Loading employees...</div>
               ) : employees.length === 0 ? (
                 <div style={{ padding: 24, textAlign: 'center', background: '#f5f5f5', borderRadius: 8 }}>No employees found. Add your first employee!</div>
+              ) : filteredEmployees.length === 0 ? (
+                <div style={{ padding: 24, textAlign: 'center', background: '#f5f5f5', borderRadius: 8 }}>No matching employees found.</div>
               ) : (
                 <div style={{ width: '100%', overflowX: 'auto' }}>
                   <table className="glass-panel" style={{ width: '100%', borderCollapse: 'collapse', overflow: 'hidden', fontSize: '14px' }}>
@@ -1442,13 +1607,14 @@ export default function Dashboard({ user, onLogout }: { user: User; onLogout?: (
                         <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 600 }}>Last Name</th>
                         <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 600 }}>Email</th>
                         <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 600 }}>Phone</th>
+                        <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: 600 }}>NIC</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {employees.map((emp, idx) => (
+                      {filteredEmployees.map((emp, idx) => (
                         <tr
                           key={emp.employee_id}
-                          style={{ borderBottom: idx < employees.length - 1 ? '1px solid #e0e0e0' : 'none', cursor: 'pointer' }}
+                          style={{ borderBottom: idx < filteredEmployees.length - 1 ? '1px solid #e0e0e0' : 'none', cursor: 'pointer' }}
                           onClick={() => openEmployeeDetails(emp)}
                         >
                           <td style={{ padding: '12px 16px' }}>{emp.employee_id}</td>
@@ -1457,6 +1623,7 @@ export default function Dashboard({ user, onLogout }: { user: User; onLogout?: (
                           <td style={{ padding: '12px 16px' }}>{emp.last_name}</td>
                           <td style={{ padding: '12px 16px' }}>{emp.email}</td>
                           <td style={{ padding: '12px 16px' }}>{emp.phone}</td>
+                          <td style={{ padding: '12px 16px' }}>{emp.nic || '-'}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -1497,8 +1664,38 @@ export default function Dashboard({ user, onLogout }: { user: User; onLogout?: (
                 <>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <h1 style={{ marginTop: 0, fontSize: 28 }}>Vendors</h1>
-                    <button onClick={() => setIsAddingVendor(true)} style={{ padding: '8px 16px', borderRadius: 8, background: 'var(--accent)', color: '#fff', border: 'none', cursor: 'pointer', fontWeight: 600 }}>+ Add Vendor</button>
                   </div>
+                  <div className="glass-card" style={{ padding: '16px', marginBottom: '16px' }}>
+                    <h3 style={{ margin: '0 0 8px', fontSize: '16px', color: 'var(--primary)' }}>In-App Guidance</h3>
+                    <p style={{ margin: 0, lineHeight: 1.5, color: 'var(--text-main)' }}>
+                      This section displays a list of all vendors registered in the system. 
+                      You can review vendor information such as company name, contact details, and status.
+                    </p>
+                    <p style={{ margin: '12px 0 0', lineHeight: 1.5, color: 'var(--text-main)' }}>
+                      Click the <span onClick={() => setIsAddingVendor(true)} style={{ color: 'var(--primary)', cursor: 'pointer', textDecoration: 'underline', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 2 }}><Plus size={14} />Add Vendor</span> button to register a new vendor. 
+                      You will be asked to enter vendor details such as company name, contact person, and other required data before saving.
+                    </p>
+                  </div>
+                  
+                  <div style={{ display: 'flex', gap: 16, alignItems: 'center', background: '#f8f9fa', padding: 12, borderRadius: 8, marginBottom: 16 }}>
+                    <input 
+                      type="text" 
+                      placeholder="Search by vendor name, email, phone..." 
+                      value={vendorSearch}
+                      onChange={e => setVendorSearch(e.target.value)}
+                      style={{ padding: '8px 12px', borderRadius: 6, border: '1px solid #ccc', minWidth: 250 }}
+                    />
+                    <select 
+                      value={vendorStatusFilter} 
+                      onChange={e => setVendorStatusFilter(e.target.value)}
+                      style={{ padding: '8px 12px', borderRadius: 6, border: '1px solid #ccc' }}
+                    >
+                      <option value="All">All Statuses</option>
+                      <option value="Active">Active</option>
+                      <option value="Inactive">Inactive</option>
+                    </select>
+                  </div>
+
                   {vendorsLoading ? (
                     <div style={{ padding: 24, textAlign: 'center' }}>Loading vendors...</div>
                   ) : vendors.length === 0 ? (
@@ -1506,6 +1703,12 @@ export default function Dashboard({ user, onLogout }: { user: User; onLogout?: (
                       <div style={{ fontSize: 32, marginBottom: 16 }}>🏪</div>
                       <div style={{ fontSize: 18, fontWeight: 600, color: '#333' }}>No vendors found</div>
                       <p style={{ color: '#666', margin: '8px 0 0' }}>Manage your vendor relationships here.</p>
+                    </div>
+                  ) : filteredVendors.length === 0 ? (
+                    <div style={{ padding: 40, textAlign: 'center', background: '#f5f5f5', borderRadius: 12, border: '1px dashed #ddd' }}>
+                      <div style={{ fontSize: 32, marginBottom: 16 }}>🔍</div>
+                      <div style={{ fontSize: 18, fontWeight: 600, color: '#333' }}>No matching vendors found</div>
+                      <p style={{ color: '#666', margin: '8px 0 0' }}>Try adjusting your search or filters.</p>
                     </div>
                   ) : (
                     <div style={{ width: '100%', overflowX: 'auto' }}>
@@ -1521,8 +1724,8 @@ export default function Dashboard({ user, onLogout }: { user: User; onLogout?: (
                           </tr>
                         </thead>
                         <tbody>
-                          {vendors.map((v, idx) => (
-                            <tr key={v.vendor_id} style={{ borderBottom: idx < vendors.length - 1 ? '1px solid #e0e0e0' : 'none' }}>
+                          {filteredVendors.map((v, idx) => (
+                            <tr key={v.vendor_id} style={{ borderBottom: idx < filteredVendors.length - 1 ? '1px solid #e0e0e0' : 'none' }}>
                               <td style={{ padding: '12px 16px' }}>{v.vendor_id}</td>
                               <td style={{ padding: '12px 16px', fontWeight: 500 }}>{v.vendor_name}</td>
                               <td style={{ padding: '12px 16px' }}>{v.contact_email || '-'}</td>
@@ -1549,6 +1752,18 @@ export default function Dashboard({ user, onLogout }: { user: User; onLogout?: (
                 <h1 style={{ marginTop: 0, fontSize: 28 }}>Projects</h1>
               </div>
               <p style={{ margin: 0 }}>Track projects and budgets here.</p>
+              <div className="glass-card" style={{ padding: '16px', marginBottom: '16px', marginTop: '16px' }}>
+                <h3 style={{ margin: '0 0 8px', fontSize: '16px', color: 'var(--primary)' }}>In-App Guidance</h3>
+                <p style={{ margin: 0, lineHeight: 1.5, color: 'var(--text-main)' }}>
+                  This section provides a comprehensive view of all ongoing and completed projects. 
+                  You can monitor project budgets, status, and payment details at a glance.
+                </p>
+                <p style={{ margin: '12px 0 0', lineHeight: 1.5, color: 'var(--text-main)' }}>
+                  To create a new project, click the <span onClick={() => setProjectModalOpen(true)} style={{ color: 'var(--primary)', cursor: 'pointer', textDecoration: 'underline', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 2 }}><Plus size={14} />Add Project</span> button in the sidebar. 
+                  Use the <strong>Actions</strong> column to edit project details, delete projects, or manage specific project items. 
+                  Clicking on a project row or the <strong>Items</strong> button allows you to view and add specific requirements and costs associated with that project.
+                </p>
+              </div>
               {projectsLoading ? (
                 <div style={{ padding: 24, textAlign: 'center' }}>Loading projects...</div>
               ) : projects.length === 0 ? (
@@ -1759,10 +1974,62 @@ export default function Dashboard({ user, onLogout }: { user: User; onLogout?: (
                       <span>+</span> Add Bill
                     </button>
                   </div>
+                  
+                  <div className="glass-card" style={{ padding: '16px', marginBottom: '16px' }}>
+                     <h3 style={{ margin: '0 0 12px', fontSize: '16px', color: 'var(--primary)' }}>Process Flow</h3>
+                     <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', color: '#555' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.5)', padding: '6px 12px', borderRadius: 20 }}>
+                           <Store size={16} /> <span>Vendor Invoice</span>
+                        </div>
+                        <ChevronRight size={16} color="#999" />
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.5)', padding: '6px 12px', borderRadius: 20 }}>
+                           <Receipt size={16} /> <span>Bill Entry</span>
+                        </div>
+                        <ChevronRight size={16} color="#999" />
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.5)', padding: '6px 12px', borderRadius: 20 }}>
+                           <CreditCard size={16} /> <span>Payment</span>
+                        </div>
+                     </div>
+                     <p style={{ margin: '12px 0 0', lineHeight: 1.5, color: 'var(--text-main)', fontSize: '14px' }}>
+                        Record bills received from vendors here. Set up recurring payments for subscriptions or utilities, and track their status.
+                     </p>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: 12, marginBottom: 16 }}>
+                    <input 
+                      type="text" 
+                      placeholder="Search payables..." 
+                      value={payableSearch} 
+                      onChange={e => setPayableSearch(e.target.value)} 
+                      style={{ padding: '8px 12px', borderRadius: 6, border: '1px solid #ccc', flex: 1 }} 
+                    />
+                    <select 
+                      value={payableTypeFilter} 
+                      onChange={e => setPayableTypeFilter(e.target.value)} 
+                      style={{ padding: '8px 12px', borderRadius: 6, border: '1px solid #ccc' }}
+                    >
+                      <option value="All">All Types</option>
+                      <option value="ONE_TIME">One Time</option>
+                      <option value="RECURRING">Recurring</option>
+                      <option value="PETTY_CASH">Petty Cash</option>
+                    </select>
+                    <select 
+                      value={payableStatusFilter} 
+                      onChange={e => setPayableStatusFilter(e.target.value)} 
+                      style={{ padding: '8px 12px', borderRadius: 6, border: '1px solid #ccc' }}
+                    >
+                      <option value="All">All Status</option>
+                      <option value="Active">Active</option>
+                      <option value="Inactive">Inactive</option>
+                    </select>
+                  </div>
+
                   {payablesLoading ? (
                     <div style={{ padding: 24, textAlign: 'center' }}>Loading payables...</div>
-                  ) : payables.length === 0 ? (
-                    <div style={{ padding: 24, textAlign: 'center', background: '#f5f5f5', borderRadius: 8 }}>No bills found.</div>
+                  ) : filteredPayables.length === 0 ? (
+                    <div style={{ padding: 24, textAlign: 'center', background: '#f5f5f5', borderRadius: 8 }}>
+                      {payables.length === 0 ? "No bills found." : "No bills found matching your filters."}
+                    </div>
                   ) : (
                     <div style={{ width: '100%', overflowX: 'auto' }}>
                       <table className="glass-panel" style={{ width: '100%', borderCollapse: 'collapse', overflow: 'hidden', fontSize: '14px' }}>
@@ -1782,8 +2049,8 @@ export default function Dashboard({ user, onLogout }: { user: User; onLogout?: (
                           </tr>
                         </thead>
                         <tbody>
-                          {payables.map((p, idx) => (
-                            <tr key={p.payable_id} style={{ borderBottom: idx < payables.length - 1 ? '1px solid #e0e0e0' : 'none' }}>
+                          {filteredPayables.map((p, idx) => (
+                            <tr key={p.payable_id} style={{ borderBottom: idx < filteredPayables.length - 1 ? '1px solid #e0e0e0' : 'none' }}>
                               <td style={{ padding: '12px 16px' }}>{p.payable_id}</td>
                               <td style={{ padding: '12px 16px' }}>{p.vendor_id}</td>
                               <td style={{ padding: '12px 16px', fontWeight: 500 }}>{p.payable_name}</td>
@@ -1902,6 +2169,25 @@ export default function Dashboard({ user, onLogout }: { user: User; onLogout?: (
                 </div>
               ) : (
                 <>
+                  <div className="glass-card" style={{ padding: '16px', marginBottom: '16px' }}>
+                     <h3 style={{ margin: '0 0 12px', fontSize: '16px', color: 'var(--primary)' }}>Process Flow</h3>
+                     <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', color: '#555' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.5)', padding: '6px 12px', borderRadius: 20 }}>
+                           <Landmark size={16} /> <span>Replenish Funds</span>
+                        </div>
+                        <ChevronRight size={16} color="#999" />
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.5)', padding: '6px 12px', borderRadius: 20 }}>
+                           <Receipt size={16} /> <span>Create Bill</span>
+                        </div>
+                        <ChevronRight size={16} color="#999" />
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.5)', padding: '6px 12px', borderRadius: 20 }}>
+                           <ClipboardList size={16} /> <span>Track History</span>
+                        </div>
+                     </div>
+                     <p style={{ margin: '12px 0 0', lineHeight: 1.5, color: 'var(--text-main)', fontSize: '14px' }}>
+                        To reload your petty cash account, you can replenish using an available bank account. You can also create bills for expenses. Once created, bills will appear here.
+                     </p>
+                  </div>
                   {pettyCashTransactionsLoading ? (
                     <div style={{ padding: 24, textAlign: 'center' }}>Loading transactions...</div>
                   ) : pettyCashTransactions.length === 0 ? (
@@ -1955,6 +2241,25 @@ export default function Dashboard({ user, onLogout }: { user: User; onLogout?: (
             <div style={{ width: '100%', display: 'grid', gap: 16 }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <h1 style={{ marginTop: 0, fontSize: 28 }}>Accounts</h1>
+              </div>
+              <div className="glass-card" style={{ padding: '16px', marginBottom: '16px' }}>
+                 <h3 style={{ margin: '0 0 12px', fontSize: '16px', color: 'var(--primary)' }}>Process Flow</h3>
+                 <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', color: '#555' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.5)', padding: '6px 12px', borderRadius: 20 }}>
+                       <PlusCircle size={16} /> <span>Open Account</span>
+                    </div>
+                    <ChevronRight size={16} color="#999" />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.5)', padding: '6px 12px', borderRadius: 20 }}>
+                       <Landmark size={16} /> <span>View Accounts</span>
+                    </div>
+                    <ChevronRight size={16} color="#999" />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.5)', padding: '6px 12px', borderRadius: 20 }}>
+                       <CreditCard size={16} /> <span>View Cards</span>
+                    </div>
+                 </div>
+                 <p style={{ margin: '12px 0 0', lineHeight: 1.5, color: 'var(--text-main)', fontSize: '14px' }}>
+                    Use the Open Account tab to add new bank accounts. Once created, they appear here. Click on any bank account card to view associated debit/credit cards.
+                 </p>
               </div>
               {accountsLoading ? (
                 <div style={{ padding: 24, textAlign: 'center' }}>Loading accounts...</div>
@@ -2074,11 +2379,60 @@ export default function Dashboard({ user, onLogout }: { user: User; onLogout?: (
                 <h1 style={{ marginTop: 0, fontSize: 28 }}>Receivable</h1>
                 <button onClick={() => setIsAddingReceivable(true)} style={{ padding: '8px 16px', borderRadius: 8, background: 'var(--accent)', color: '#fff', border: 'none', cursor: 'pointer', fontWeight: 600 }}>+ Add Receivable Bill</button>
               </div>
-              <p style={{ margin: 0 }}>Manage receivables here.</p>
+              <div className="glass-card" style={{ padding: '16px', marginBottom: '16px' }}>
+                 <h3 style={{ margin: '0 0 12px', fontSize: '16px', color: 'var(--primary)' }}>Process Flow</h3>
+                 <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', color: '#555' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.5)', padding: '6px 12px', borderRadius: 20 }}>
+                       <Receipt size={16} /> <span>Create Invoice</span>
+                    </div>
+                    <ChevronRight size={16} color="#999" />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.5)', padding: '6px 12px', borderRadius: 20 }}>
+                       <Users size={16} /> <span>Client Management</span>
+                    </div>
+                    <ChevronRight size={16} color="#999" />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.5)', padding: '6px 12px', borderRadius: 20 }}>
+                       <Coins size={16} /> <span>Receive Payment</span>
+                    </div>
+                 </div>
+                 <p style={{ margin: '12px 0 0', lineHeight: 1.5, color: 'var(--text-main)', fontSize: '14px' }}>
+                    Create invoices for clients, manage pending payments, and record received funds. Keep track of all your incoming revenue streams here.
+                 </p>
+              </div>
+
+              <div style={{ display: 'flex', gap: 12, marginBottom: 16 }}>
+                <input 
+                  type="text" 
+                  placeholder="Search receivables..." 
+                  value={receivableSearch} 
+                  onChange={e => setReceivableSearch(e.target.value)} 
+                  style={{ padding: '8px 12px', borderRadius: 6, border: '1px solid #ccc', flex: 1 }} 
+                />
+                <select 
+                  value={receivableTypeFilter} 
+                  onChange={e => setReceivableTypeFilter(e.target.value)} 
+                  style={{ padding: '8px 12px', borderRadius: 6, border: '1px solid #ccc' }}
+                >
+                  <option value="All">All Types</option>
+                  <option value="ONE_TIME">One Time</option>
+                  <option value="RECURRING">Recurring</option>
+                </select>
+                <select 
+                  value={receivableStatusFilter} 
+                  onChange={e => setReceivableStatusFilter(e.target.value)} 
+                  style={{ padding: '8px 12px', borderRadius: 6, border: '1px solid #ccc' }}
+                >
+                  <option value="All">All Status</option>
+                  <option value="Active">Active</option>
+                  <option value="Inactive">Inactive</option>
+                </select>
+              </div>
+
               {receivablesLoading ? (
                 <div style={{ padding: 24, textAlign: 'center' }}>Loading receivables...</div>
-              ) : receivables.length === 0 ? (
-                <div style={{ padding: 24, textAlign: 'center', background: '#f5f5f5', borderRadius: 8 }}>No receivables found.</div>
+              ) : filteredReceivables.length === 0 ? (
+                <div style={{ padding: 24, textAlign: 'center', background: '#f5f5f5', borderRadius: 8 }}>
+                  {receivables.length === 0 ? "No receivables found." : "No receivables found matching your filters."}
+                </div>
               ) : (
                 <div style={{ width: '100%', overflowX: 'auto' }}>
                   <table className="glass-panel" style={{ width: '100%', borderCollapse: 'collapse', overflow: 'hidden', fontSize: '14px' }}>
@@ -2098,8 +2452,8 @@ export default function Dashboard({ user, onLogout }: { user: User; onLogout?: (
                       </tr>
                     </thead>
                     <tbody>
-                      {receivables.map((r, idx) => (
-                        <tr key={r.receivable_id} style={{ borderBottom: idx < receivables.length - 1 ? '1px solid #e0e0e0' : 'none' }}>
+                      {filteredReceivables.map((r, idx) => (
+                        <tr key={r.receivable_id} style={{ borderBottom: idx < filteredReceivables.length - 1 ? '1px solid #e0e0e0' : 'none' }}>
                           <td style={{ padding: '12px 16px' }}>{r.receivable_id}</td>
                           <td style={{ padding: '12px 16px' }}>{r.payer_name}</td>
                           <td style={{ padding: '12px 16px' }}>{r.receivable_name}</td>
