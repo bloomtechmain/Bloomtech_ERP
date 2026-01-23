@@ -3,6 +3,7 @@ import { API_URL } from '../config/api'
 import CalendarWidget from '../components/CalendarWidget'
 import NotesWidget from '../components/NotesWidget'
 import TodosWidget from '../components/TodosWidget'
+import { ProcessFlowGuidance } from '../components/ProcessFlowGuidance'
 import DataAnalytics from './DataAnalytics'
 import { LayoutDashboard, Users, ClipboardList, Store, FolderOpen, Banknote, Landmark, Receipt, Coins, Inbox, Plus, PlusCircle, CreditCard, Building2, ChevronLeft, ChevronRight, ChevronDown, BarChart3 } from 'lucide-react'
 
@@ -1554,20 +1555,18 @@ export default function Dashboard({ user, onLogout }: { user: User; onLogout?: (
         )}
           {tab === 'employees' && employeeSubTab === 'employees' && (
             <div style={{ width: '100%', display: 'grid', gap: 16 }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
                 <h1 style={{ marginTop: 0, fontSize: 28 }}>Employee Management</h1>
-              </div>
-              <div className="glass-card" style={{ padding: '16px' }}>
-                <h3 style={{ margin: '0 0 8px', fontSize: '16px', color: 'var(--primary)' }}>In-App Guidance</h3>
-                <p style={{ margin: 0, lineHeight: 1.5, color: 'var(--text-main)' }}>
-                  This section displays a list of all employees registered in the system. 
-                  You can review employee information such as name, role, department, or status. 
-                  Use the filtering options to narrow down the list and quickly locate employees by specific criteria.
-                </p>
-                <p style={{ margin: '12px 0 0', lineHeight: 1.5, color: 'var(--text-main)' }}>
-                  Click the <span onClick={() => setAddOpen(true)} style={{ color: 'var(--primary)', cursor: 'pointer', textDecoration: 'underline', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 2 }}><Plus size={14} />Add Employee</span> button to add a new employee to the system. 
-                  You will be asked to enter employee details such as personal information, job role, and other required data before saving.
-                </p>
+                {employees.length > 0 && (
+                  <ProcessFlowGuidance
+                    steps={[
+                      { icon: <Plus size={16} />, label: 'Add Employee', onClick: () => setAddOpen(true) },
+                      { icon: <Users size={16} />, label: 'View List' },
+                      { icon: <ClipboardList size={16} />, label: 'Manage Details' }
+                    ]}
+                    description="Manage your workforce here. Add new employees, update their information, and track their roles and designations within the company."
+                  />
+                )}
               </div>
               
               <div style={{ display: 'flex', gap: 16, alignItems: 'center', background: '#f8f9fa', padding: 12, borderRadius: 8 }}>
@@ -1593,7 +1592,15 @@ export default function Dashboard({ user, onLogout }: { user: User; onLogout?: (
               {loading ? (
                 <div style={{ padding: 24, textAlign: 'center' }}>Loading employees...</div>
               ) : employees.length === 0 ? (
-                <div style={{ padding: 24, textAlign: 'center', background: '#f5f5f5', borderRadius: 8 }}>No employees found. Add your first employee!</div>
+                <ProcessFlowGuidance
+                  mode="inline"
+                  steps={[
+                    { icon: <Plus size={16} />, label: 'Add Employee', onClick: () => setAddOpen(true) },
+                    { icon: <Users size={16} />, label: 'View List' },
+                    { icon: <ClipboardList size={16} />, label: 'Manage Details' }
+                  ]}
+                  description="Manage your workforce here. Add new employees, update their information, and track their roles and designations within the company."
+                />
               ) : filteredEmployees.length === 0 ? (
                 <div style={{ padding: 24, textAlign: 'center', background: '#f5f5f5', borderRadius: 8 }}>No matching employees found.</div>
               ) : (
@@ -1662,19 +1669,18 @@ export default function Dashboard({ user, onLogout }: { user: User; onLogout?: (
                 </div>
               ) : (
                 <>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
                     <h1 style={{ marginTop: 0, fontSize: 28 }}>Vendors</h1>
-                  </div>
-                  <div className="glass-card" style={{ padding: '16px', marginBottom: '16px' }}>
-                    <h3 style={{ margin: '0 0 8px', fontSize: '16px', color: 'var(--primary)' }}>In-App Guidance</h3>
-                    <p style={{ margin: 0, lineHeight: 1.5, color: 'var(--text-main)' }}>
-                      This section displays a list of all vendors registered in the system. 
-                      You can review vendor information such as company name, contact details, and status.
-                    </p>
-                    <p style={{ margin: '12px 0 0', lineHeight: 1.5, color: 'var(--text-main)' }}>
-                      Click the <span onClick={() => setIsAddingVendor(true)} style={{ color: 'var(--primary)', cursor: 'pointer', textDecoration: 'underline', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 2 }}><Plus size={14} />Add Vendor</span> button to register a new vendor. 
-                      You will be asked to enter vendor details such as company name, contact person, and other required data before saving.
-                    </p>
+                    {vendors.length > 0 && (
+                      <ProcessFlowGuidance
+                        steps={[
+                          { icon: <Plus size={16} />, label: 'Add Vendor', onClick: () => setIsAddingVendor(true) },
+                          { icon: <Store size={16} />, label: 'View Vendors' },
+                          { icon: <Receipt size={16} />, label: 'Track History' }
+                        ]}
+                        description="Manage your vendor relationships. Register new vendors, update their contact details, and track their status."
+                      />
+                    )}
                   </div>
                   
                   <div style={{ display: 'flex', gap: 16, alignItems: 'center', background: '#f8f9fa', padding: 12, borderRadius: 8, marginBottom: 16 }}>
@@ -1699,11 +1705,15 @@ export default function Dashboard({ user, onLogout }: { user: User; onLogout?: (
                   {vendorsLoading ? (
                     <div style={{ padding: 24, textAlign: 'center' }}>Loading vendors...</div>
                   ) : vendors.length === 0 ? (
-                    <div style={{ padding: 40, textAlign: 'center', background: '#f5f5f5', borderRadius: 12, border: '1px dashed #ddd' }}>
-                      <div style={{ fontSize: 32, marginBottom: 16 }}>🏪</div>
-                      <div style={{ fontSize: 18, fontWeight: 600, color: '#333' }}>No vendors found</div>
-                      <p style={{ color: '#666', margin: '8px 0 0' }}>Manage your vendor relationships here.</p>
-                    </div>
+                    <ProcessFlowGuidance
+                      mode="inline"
+                      steps={[
+                        { icon: <Plus size={16} />, label: 'Add Vendor', onClick: () => setIsAddingVendor(true) },
+                        { icon: <Store size={16} />, label: 'View Vendors' },
+                        { icon: <Receipt size={16} />, label: 'Track History' }
+                      ]}
+                      description="Manage your vendor relationships. Register new vendors, update their contact details, and track their status."
+                    />
                   ) : filteredVendors.length === 0 ? (
                     <div style={{ padding: 40, textAlign: 'center', background: '#f5f5f5', borderRadius: 12, border: '1px dashed #ddd' }}>
                       <div style={{ fontSize: 32, marginBottom: 16 }}>🔍</div>
@@ -1748,26 +1758,32 @@ export default function Dashboard({ user, onLogout }: { user: User; onLogout?: (
           )}
           {tab === 'projects' && (
             <div style={{ width: '100%', display: 'grid', gap: 16 }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
                 <h1 style={{ marginTop: 0, fontSize: 28 }}>Projects</h1>
+                {projects.length > 0 && (
+                  <ProcessFlowGuidance
+                    steps={[
+                      { icon: <Plus size={16} />, label: 'Create Project', onClick: () => setProjectModalOpen(true) },
+                      { icon: <FolderOpen size={16} />, label: 'Manage Projects' },
+                      { icon: <Banknote size={16} />, label: 'Track Budget' }
+                    ]}
+                    description="This section provides a comprehensive view of all ongoing and completed projects. Monitor project budgets, status, and payment details at a glance."
+                  />
+                )}
               </div>
               <p style={{ margin: 0 }}>Track projects and budgets here.</p>
-              <div className="glass-card" style={{ padding: '16px', marginBottom: '16px', marginTop: '16px' }}>
-                <h3 style={{ margin: '0 0 8px', fontSize: '16px', color: 'var(--primary)' }}>In-App Guidance</h3>
-                <p style={{ margin: 0, lineHeight: 1.5, color: 'var(--text-main)' }}>
-                  This section provides a comprehensive view of all ongoing and completed projects. 
-                  You can monitor project budgets, status, and payment details at a glance.
-                </p>
-                <p style={{ margin: '12px 0 0', lineHeight: 1.5, color: 'var(--text-main)' }}>
-                  To create a new project, click the <span onClick={() => setProjectModalOpen(true)} style={{ color: 'var(--primary)', cursor: 'pointer', textDecoration: 'underline', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 2 }}><Plus size={14} />Add Project</span> button in the sidebar. 
-                  Use the <strong>Actions</strong> column to edit project details, delete projects, or manage specific project items. 
-                  Clicking on a project row or the <strong>Items</strong> button allows you to view and add specific requirements and costs associated with that project.
-                </p>
-              </div>
               {projectsLoading ? (
                 <div style={{ padding: 24, textAlign: 'center' }}>Loading projects...</div>
               ) : projects.length === 0 ? (
-                <div style={{ padding: 24, textAlign: 'center', background: '#f5f5f5', borderRadius: 8 }}>No projects found. Add your first project!</div>
+                <ProcessFlowGuidance
+                  mode="inline"
+                  steps={[
+                    { icon: <Plus size={16} />, label: 'Create Project', onClick: () => setProjectModalOpen(true) },
+                    { icon: <FolderOpen size={16} />, label: 'Manage Projects' },
+                    { icon: <Banknote size={16} />, label: 'Track Budget' }
+                  ]}
+                  description="This section provides a comprehensive view of all ongoing and completed projects. Monitor project budgets, status, and payment details at a glance."
+                />
               ) : (
                 <div style={{ width: '100%', overflowX: 'auto' }}>
                   <table className="glass-panel" style={{ width: '100%', borderCollapse: 'collapse', overflow: 'hidden', fontSize: '14px' }}>
@@ -1968,31 +1984,23 @@ export default function Dashboard({ user, onLogout }: { user: User; onLogout?: (
                 </div>
               ) : (
                 <>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <h1 style={{ marginTop: 0, fontSize: 28 }}>Payables</h1>
-                    <button onClick={() => setIsAddingBill(true)} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 20px', borderRadius: 8, border: 'none', background: 'var(--primary)', color: '#fff', fontSize: '14px', fontWeight: 600, cursor: 'pointer', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
-                      <span>+</span> Add Bill
-                    </button>
-                  </div>
-                  
-                  <div className="glass-card" style={{ padding: '16px', marginBottom: '16px' }}>
-                     <h3 style={{ margin: '0 0 12px', fontSize: '16px', color: 'var(--primary)' }}>Process Flow</h3>
-                     <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', color: '#555' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.5)', padding: '6px 12px', borderRadius: 20 }}>
-                           <Store size={16} /> <span>Vendor Invoice</span>
-                        </div>
-                        <ChevronRight size={16} color="#999" />
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.5)', padding: '6px 12px', borderRadius: 20 }}>
-                           <Receipt size={16} /> <span>Bill Entry</span>
-                        </div>
-                        <ChevronRight size={16} color="#999" />
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.5)', padding: '6px 12px', borderRadius: 20 }}>
-                           <CreditCard size={16} /> <span>Payment</span>
-                        </div>
-                     </div>
-                     <p style={{ margin: '12px 0 0', lineHeight: 1.5, color: 'var(--text-main)', fontSize: '14px' }}>
-                        Record bills received from vendors here. Set up recurring payments for subscriptions or utilities, and track their status.
-                     </p>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
+                    <h1 style={{ marginTop: 0, fontSize: 28, marginBottom: 0 }}>Payables</h1>
+                    <div style={{ display: 'flex', alignItems: 'center' }}>
+                      <button onClick={() => setIsAddingBill(true)} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 20px', borderRadius: 8, border: 'none', background: 'var(--primary)', color: '#fff', fontSize: '14px', fontWeight: 600, cursor: 'pointer', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
+                        <span>+</span> Add Bill
+                      </button>
+                      {payables.length > 0 && (
+                        <ProcessFlowGuidance
+                          steps={[
+                            { icon: <Store size={16} />, label: 'Vendor Invoice' },
+                            { icon: <Receipt size={16} />, label: 'Bill Entry' },
+                            { icon: <CreditCard size={16} />, label: 'Payment' }
+                          ]}
+                          description="Record bills received from vendors here. Set up recurring payments for subscriptions or utilities, and track their status."
+                        />
+                      )}
+                    </div>
                   </div>
 
                   <div style={{ display: 'flex', gap: 12, marginBottom: 16 }}>
@@ -2027,9 +2035,21 @@ export default function Dashboard({ user, onLogout }: { user: User; onLogout?: (
                   {payablesLoading ? (
                     <div style={{ padding: 24, textAlign: 'center' }}>Loading payables...</div>
                   ) : filteredPayables.length === 0 ? (
-                    <div style={{ padding: 24, textAlign: 'center', background: '#f5f5f5', borderRadius: 8 }}>
-                      {payables.length === 0 ? "No bills found." : "No bills found matching your filters."}
-                    </div>
+                    payables.length === 0 ? (
+                      <ProcessFlowGuidance
+                        mode="inline"
+                        steps={[
+                          { icon: <Store size={16} />, label: 'Vendor Invoice' },
+                          { icon: <Receipt size={16} />, label: 'Bill Entry' },
+                          { icon: <CreditCard size={16} />, label: 'Payment' }
+                        ]}
+                        description="Record bills received from vendors here. Set up recurring payments for subscriptions or utilities, and track their status."
+                      />
+                    ) : (
+                      <div style={{ padding: 24, textAlign: 'center', background: '#f5f5f5', borderRadius: 8 }}>
+                        No bills found matching your filters.
+                      </div>
+                    )
                   ) : (
                     <div style={{ width: '100%', overflowX: 'auto' }}>
                       <table className="glass-panel" style={{ width: '100%', borderCollapse: 'collapse', overflow: 'hidden', fontSize: '14px' }}>
@@ -2080,7 +2100,9 @@ export default function Dashboard({ user, onLogout }: { user: User; onLogout?: (
             <div style={{ width: '100%', display: 'grid', gap: 16 }}>
               <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
                 <div>
-                  <h1 style={{ marginTop: 0, fontSize: 28, marginBottom: 16 }}>Petty Cash</h1>
+                  <div style={{ display: 'flex', alignItems: 'center', marginBottom: 16 }}>
+                    <h1 style={{ marginTop: 0, fontSize: 28, marginBottom: 0 }}>Petty Cash</h1>
+                  </div>
                   <div className="glass-card" style={{ padding: '16px 24px', display: 'inline-flex', flexDirection: 'column', gap: 4, minWidth: 200 }}>
                     <div style={{ fontSize: 14, color: '#666', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Current Balance</div>
                     <div style={{ fontSize: 32, fontWeight: 800, color: 'var(--primary)', letterSpacing: '-1px' }}>
@@ -2089,15 +2111,15 @@ export default function Dashboard({ user, onLogout }: { user: User; onLogout?: (
                     </div>
                   </div>
                 </div>
-                {!isAddingBill && !isReplenishing && (
-                  <div style={{ display: 'flex', gap: 12 }}>
-                    <button onClick={() => setIsReplenishing(true)} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 20px', borderRadius: 8, border: '1px solid var(--primary)', background: '#fff', color: 'var(--primary)', fontSize: '14px', fontWeight: 600, cursor: 'pointer', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' }}>
-                      Replenish
-                    </button>
-                    <button onClick={() => { setBillType('PETTY_CASH'); setIsAddingBill(true) }} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 20px', borderRadius: 8, border: 'none', background: 'var(--primary)', color: '#fff', fontSize: '14px', fontWeight: 600, cursor: 'pointer', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
-                      <span>+</span> Add Bill
-                    </button>
-                  </div>
+                {(pettyCashTransactions.length > 0 || pettyCashBalance > 0) && (
+                  <ProcessFlowGuidance
+                    steps={[
+                      { icon: <Landmark size={16} />, label: 'Replenish Funds', onClick: () => { setIsAddingBill(false); setIsReplenishing(true) } },
+                      { icon: <Receipt size={16} />, label: 'Create Bill', onClick: () => { setIsReplenishing(false); setBillType('PETTY_CASH'); setIsAddingBill(true) } },
+                      { icon: <ClipboardList size={16} />, label: 'Track History' }
+                    ]}
+                    description="To reload your petty cash account, you can replenish using an available bank account. You can also create bills for expenses. Once created, bills will appear here."
+                  />
                 )}
               </div>
               
@@ -2169,29 +2191,19 @@ export default function Dashboard({ user, onLogout }: { user: User; onLogout?: (
                 </div>
               ) : (
                 <>
-                  <div className="glass-card" style={{ padding: '16px', marginBottom: '16px' }}>
-                     <h3 style={{ margin: '0 0 12px', fontSize: '16px', color: 'var(--primary)' }}>Process Flow</h3>
-                     <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', color: '#555' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.5)', padding: '6px 12px', borderRadius: 20 }}>
-                           <Landmark size={16} /> <span>Replenish Funds</span>
-                        </div>
-                        <ChevronRight size={16} color="#999" />
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.5)', padding: '6px 12px', borderRadius: 20 }}>
-                           <Receipt size={16} /> <span>Create Bill</span>
-                        </div>
-                        <ChevronRight size={16} color="#999" />
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.5)', padding: '6px 12px', borderRadius: 20 }}>
-                           <ClipboardList size={16} /> <span>Track History</span>
-                        </div>
-                     </div>
-                     <p style={{ margin: '12px 0 0', lineHeight: 1.5, color: 'var(--text-main)', fontSize: '14px' }}>
-                        To reload your petty cash account, you can replenish using an available bank account. You can also create bills for expenses. Once created, bills will appear here.
-                     </p>
-                  </div>
+
                   {pettyCashTransactionsLoading ? (
                     <div style={{ padding: 24, textAlign: 'center' }}>Loading transactions...</div>
                   ) : pettyCashTransactions.length === 0 ? (
-                    <div style={{ padding: 24, textAlign: 'center', background: '#f5f5f5', borderRadius: 8 }}>No petty cash transactions found.</div>
+                    <ProcessFlowGuidance
+                      mode="inline"
+                      steps={[
+                        { icon: <Landmark size={16} />, label: 'Replenish Funds', onClick: () => { setIsAddingBill(false); setIsReplenishing(true) } },
+                        { icon: <Receipt size={16} />, label: 'Create Bill', onClick: () => { setIsReplenishing(false); setBillType('PETTY_CASH'); setIsAddingBill(true) } },
+                        { icon: <ClipboardList size={16} />, label: 'Track History' }
+                      ]}
+                      description="To reload your petty cash account, you can replenish using an available bank account. You can also create bills for expenses. Once created, bills will appear here."
+                    />
                   ) : (
                     <div style={{ width: '100%', overflowX: 'auto' }}>
                   <table className="glass-panel" style={{ width: '100%', borderCollapse: 'collapse', overflow: 'hidden', fontSize: '14px' }}>
@@ -2239,32 +2251,31 @@ export default function Dashboard({ user, onLogout }: { user: User; onLogout?: (
           )}
           {tab === 'accounting' && accountingSubTab === 'accounts' && (
             <div style={{ width: '100%', display: 'grid', gap: 16 }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <h1 style={{ marginTop: 0, fontSize: 28 }}>Accounts</h1>
-              </div>
-              <div className="glass-card" style={{ padding: '16px', marginBottom: '16px' }}>
-                 <h3 style={{ margin: '0 0 12px', fontSize: '16px', color: 'var(--primary)' }}>Process Flow</h3>
-                 <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', color: '#555' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.5)', padding: '6px 12px', borderRadius: 20 }}>
-                       <PlusCircle size={16} /> <span>Open Account</span>
-                    </div>
-                    <ChevronRight size={16} color="#999" />
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.5)', padding: '6px 12px', borderRadius: 20 }}>
-                       <Landmark size={16} /> <span>View Accounts</span>
-                    </div>
-                    <ChevronRight size={16} color="#999" />
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.5)', padding: '6px 12px', borderRadius: 20 }}>
-                       <CreditCard size={16} /> <span>View Cards</span>
-                    </div>
-                 </div>
-                 <p style={{ margin: '12px 0 0', lineHeight: 1.5, color: 'var(--text-main)', fontSize: '14px' }}>
-                    Use the Open Account tab to add new bank accounts. Once created, they appear here. Click on any bank account card to view associated debit/credit cards.
-                 </p>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+                <h1 style={{ marginTop: 0, fontSize: 28, marginBottom: 0 }}>Accounts</h1>
+                {accounts.length > 0 && (
+                  <ProcessFlowGuidance
+                    steps={[
+                      { icon: <PlusCircle size={16} />, label: 'Open Account' },
+                      { icon: <Landmark size={16} />, label: 'View Accounts' },
+                      { icon: <CreditCard size={16} />, label: 'View Cards' }
+                    ]}
+                    description="Use the Open Account tab to add new bank accounts. Once created, they appear here. Click on any bank account card to view associated debit/credit cards."
+                  />
+                )}
               </div>
               {accountsLoading ? (
                 <div style={{ padding: 24, textAlign: 'center' }}>Loading accounts...</div>
               ) : accounts.length === 0 ? (
-                <div style={{ padding: 24, textAlign: 'center', background: '#f5f5f5', borderRadius: 8 }}>No accounts found. Use Open Account to add one.</div>
+                <ProcessFlowGuidance
+                  mode="inline"
+                  steps={[
+                    { icon: <PlusCircle size={16} />, label: 'Open Account' },
+                    { icon: <Landmark size={16} />, label: 'View Accounts' },
+                    { icon: <CreditCard size={16} />, label: 'View Cards' }
+                  ]}
+                  description="Use the Open Account tab to add new bank accounts. Once created, they appear here. Click on any bank account card to view associated debit/credit cards."
+                />
               ) : (
                 <>
                   <style>
@@ -2375,28 +2386,21 @@ export default function Dashboard({ user, onLogout }: { user: User; onLogout?: (
           
           {tab === 'accounting' && accountingSubTab === 'receivable' && (
             <div style={{ width: '100%', display: 'grid', gap: 16 }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <h1 style={{ marginTop: 0, fontSize: 28 }}>Receivable</h1>
-                <button onClick={() => setIsAddingReceivable(true)} style={{ padding: '8px 16px', borderRadius: 8, background: 'var(--accent)', color: '#fff', border: 'none', cursor: 'pointer', fontWeight: 600 }}>+ Add Receivable Bill</button>
-              </div>
-              <div className="glass-card" style={{ padding: '16px', marginBottom: '16px' }}>
-                 <h3 style={{ margin: '0 0 12px', fontSize: '16px', color: 'var(--primary)' }}>Process Flow</h3>
-                 <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', color: '#555' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.5)', padding: '6px 12px', borderRadius: 20 }}>
-                       <Receipt size={16} /> <span>Create Invoice</span>
-                    </div>
-                    <ChevronRight size={16} color="#999" />
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.5)', padding: '6px 12px', borderRadius: 20 }}>
-                       <Users size={16} /> <span>Client Management</span>
-                    </div>
-                    <ChevronRight size={16} color="#999" />
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(255,255,255,0.5)', padding: '6px 12px', borderRadius: 20 }}>
-                       <Coins size={16} /> <span>Receive Payment</span>
-                    </div>
-                 </div>
-                 <p style={{ margin: '12px 0 0', lineHeight: 1.5, color: 'var(--text-main)', fontSize: '14px' }}>
-                    Create invoices for clients, manage pending payments, and record received funds. Keep track of all your incoming revenue streams here.
-                 </p>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+                <h1 style={{ marginTop: 0, fontSize: 28, marginBottom: 0 }}>Receivable</h1>
+                <div style={{ display: 'flex', alignItems: 'center' }}>
+                  <button onClick={() => setIsAddingReceivable(true)} style={{ padding: '8px 16px', borderRadius: 8, background: 'var(--accent)', color: '#fff', border: 'none', cursor: 'pointer', fontWeight: 600 }}>+ Add Receivable Bill</button>
+                  {receivables.length > 0 && (
+                    <ProcessFlowGuidance
+                      steps={[
+                        { icon: <Receipt size={16} />, label: 'Create Invoice' },
+                        { icon: <Users size={16} />, label: 'Client Management' },
+                        { icon: <Coins size={16} />, label: 'Receive Payment' }
+                      ]}
+                      description="Create invoices for clients, manage pending payments, and record received funds. Keep track of all your incoming revenue streams here."
+                    />
+                  )}
+                </div>
               </div>
 
               <div style={{ display: 'flex', gap: 12, marginBottom: 16 }}>
@@ -2430,9 +2434,21 @@ export default function Dashboard({ user, onLogout }: { user: User; onLogout?: (
               {receivablesLoading ? (
                 <div style={{ padding: 24, textAlign: 'center' }}>Loading receivables...</div>
               ) : filteredReceivables.length === 0 ? (
-                <div style={{ padding: 24, textAlign: 'center', background: '#f5f5f5', borderRadius: 8 }}>
-                  {receivables.length === 0 ? "No receivables found." : "No receivables found matching your filters."}
-                </div>
+                receivables.length === 0 ? (
+                  <ProcessFlowGuidance
+                    mode="inline"
+                    steps={[
+                      { icon: <Receipt size={16} />, label: 'Create Invoice' },
+                      { icon: <Users size={16} />, label: 'Client Management' },
+                      { icon: <Coins size={16} />, label: 'Receive Payment' }
+                    ]}
+                    description="Create invoices for clients, manage pending payments, and record received funds. Keep track of all your incoming revenue streams here."
+                  />
+                ) : (
+                  <div style={{ padding: 24, textAlign: 'center', background: '#f5f5f5', borderRadius: 8 }}>
+                    No receivables found matching your filters.
+                  </div>
+                )
               ) : (
                 <div style={{ width: '100%', overflowX: 'auto' }}>
                   <table className="glass-panel" style={{ width: '100%', borderCollapse: 'collapse', overflow: 'hidden', fontSize: '14px' }}>
