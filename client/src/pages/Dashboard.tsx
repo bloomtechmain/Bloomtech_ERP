@@ -2111,7 +2111,7 @@ export default function Dashboard({ user, onLogout }: { user: User; onLogout?: (
                     </div>
                   </div>
                 </div>
-                {(pettyCashTransactions.length > 0 || pettyCashBalance > 0) && (
+                {(pettyCashTransactions.length > 0 || (pettyCashBalance ?? 0) > 0) && (
                   <ProcessFlowGuidance
                     steps={[
                       { icon: <Landmark size={16} />, label: 'Replenish Funds', onClick: () => { setIsAddingBill(false); setIsReplenishing(true) } },
